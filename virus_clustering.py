@@ -36,7 +36,7 @@ gene_expression_dataset.transform(
 
 plot = Gene_Expression_Dataset_Plot(gene_expression_dataset)
 
-plot.plot_tSNE()
+plot.start()
 
 diffs = gene_expression_dataset.compare_gene_expression(["Neurons", "PHP.eB"],
                                                         ["Neurons", "PHP.S"])
@@ -52,8 +52,8 @@ uninfected_cells = set(gene_expression_dataset._data_frame.columns)\
 
 gene_expression_dataset.label_cells("Uninfected", uninfected_cells)
 
-diffs = gene_expression_dataset.compare_gene_expression(["Neurons", "PHP.eB"],
-                                                        ["Neurons", "PHP.S"])
+diffs = gene_expression_dataset.compare_gene_expression(["Test", "PHP.eB"],
+                                                        ["Test", "PHP.S"], use_normalized=False)
 
 cells2 = gene_expression_dataset._data_frame[
     list(gene_expression_dataset._label_cells["PHP.eB"].
@@ -64,7 +64,7 @@ for key in sorted(diffs.keys(), key=lambda x: diffs[x][1], reverse=False):
     print(key)
     print(diffs[key])
     i += 1
-    if i > 20:
+    if i > 10:
         break
 
 # plotting.plot_tSNE(transformed_tSNE)

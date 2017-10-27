@@ -80,12 +80,12 @@ class Gene_Expression_Dataset:
             Gene_Expression_Dataset.get_cell_labels_file_path(dataset_path))
 
         cell_transcript_counts = data_frame.sum()
+        cell_transcript_counts.name = "TOTAL_TRANSCRIPT_COUNT"
 
         Gene_Expression_Dataset.write_pandas_csv(
             cell_transcript_counts,
             Gene_Expression_Dataset.get_cell_transcript_counts_file_path(
                 dataset_path))
-
 
     @staticmethod
     def get_label_cells_from_file(file_path):
@@ -131,7 +131,8 @@ class Gene_Expression_Dataset:
                 dataset_path, seed_matrix_file_path)
 
         self._dataset_path = dataset_path
-        self._data_frame = None
+        self._gene_counts = None
+        self._normalized_gene_counts = None
         self._pca = None
         self._transformed = {}
         self._label_cells = {}
@@ -146,6 +147,10 @@ class Gene_Expression_Dataset:
 
         self.__init__(self._dataset_path)
 
+    def get_labels(self):
+
+        return list(self._label_cells.keys())
+
     def get_label_counts(self):
 
         label_counts = []
@@ -157,7 +162,7 @@ class Gene_Expression_Dataset:
 
     def plot_cell_transcript_count_eCDF(self):
 
-        cell_transcript_counts = self._data_frame.sum(axis=0)
+        cell_transcript_counts = self._gene_counts.sum(axis=0)
         value_counts = cell_transcript_counts.value_counts()
         eCDF = value_counts.sort_index().cumsum() * 1. / \
                self.num_cells
@@ -172,21 +177,22 @@ class Gene_Expression_Dataset:
             return
 
         genes_below_threshold =\
-            (self._data_frame.max(axis=1) < gene_count_threshold)
+            (self._gene_counts.max(axis=1) < gene_count_threshold)
 
-        self._data_frame = self._data_frame[~genes_below_threshold]
+        self._gene_counts = self._gene_counts[~genes_below_threshold]
 
     def filter_low_transcript_cells(self, transcript_count_threshold):
 
-        cells_below_threshold = self._cell_transcript_counts <\
+        cells_below_threshold = \
+            self._cell_transcript_counts["TOTAL_TRANSCRIPT_COUNT"] <\
             transcript_count_threshold
 
         cells_below_threshold = cells_below_threshold[cells_below_threshold]
 
         cell_names_below_threshold = set(cells_below_threshold.index)
 
-        self._data_frame = self._data_frame.drop(cell_names_below_threshold,
-                                                 axis=1)
+        self._gene_counts = self._gene_counts.drop(
+            cell_names_below_threshold, axis=1)
 
         for label in self._label_cells:
             self._label_cells[label] = self._label_cells[label].difference(
@@ -202,9 +208,10 @@ class Gene_Expression_Dataset:
         if self._data_mode == self.Data_Mode.READS_PER_MILLION_TRANSCRIPTS:
             return
 
-        self._data_frame = self._data_frame.div(self._cell_transcript_counts)
+        self._gene_counts = self._gene_counts.div(
+            self._cell_transcript_counts["TOTAL_TRANSCRIPT_COUNT"])
 
-        self._data_frame *= 1e6
+        self._gene_counts *= 1e6
 
         self._data_mode = self.Data_Mode.READS_PER_MILLION_TRANSCRIPTS
 
@@ -221,7 +228,8 @@ class Gene_Expression_Dataset:
 
             self._pca = PCA(n_components=num_dimensions)
 
-            transformed = self._pca.fit_transform(self._data_frame.transpose())
+            transformed = self._pca.fit_transform(
+                self._normalized_gene_counts.transpose())
 
             self._transformed[method] = pandas.DataFrame(transformed)
 
@@ -235,7 +243,7 @@ class Gene_Expression_Dataset:
                     self._transformed[self.Transformation_Method.PCA])
             else:
                 transformed = TSNE(verbose=True).fit_transform(
-                    self._data_frame.transpose())
+                    self._normalized_gene_counts.transpose())
 
             self._transformed[self.Transformation_Method.TSNE] = \
                 pandas.DataFrame(transformed)
@@ -243,12 +251,12 @@ class Gene_Expression_Dataset:
             self._transformed[self.Transformation_Method.TSNE].columns = \
                 ["tSNE_%i" % i for i in range(1, num_dimensions + 1)]
 
-        self._transformed[method].index = self._data_frame.columns
+        self._transformed[method].index = self._normalized_gene_counts.columns
 
     @property
     def num_cells(self):
 
-        return self._data_frame.shape[1]
+        return self._gene_counts.shape[1]
 
     def get_cell_gene_expression_by_label(self, transform=None):
 
@@ -256,7 +264,7 @@ class Gene_Expression_Dataset:
 
         for label in self._label_cells:
             if transform is None:
-                label_cells[label] = self._data_frame[self._label_cells[label]]
+                label_cells[label] = self._gene_counts[self._label_cells[label]]
             else:
                 label_cells[label] = \
                     self._transformed[transform].loc[self._label_cells[label]]
@@ -275,7 +283,7 @@ class Gene_Expression_Dataset:
             for label, _ in label_counts:
                 label_cells[label] = set()
 
-            for cell_name in self._data_frame.columns:
+            for cell_name in self._gene_counts.columns:
 
                 sample = random.choices(labels, weights=label_weights)
                 label_cells[sample[0]].add(cell_name)
@@ -287,7 +295,7 @@ class Gene_Expression_Dataset:
 
         for label in label_cells:
 
-            label_data_frame = self._data_frame[list(label_cells[label])]
+            label_data_frame = self._gene_counts[list(label_cells[label])]
 
             if is_median:
                 label_mean = label_data_frame.median(axis=1)
@@ -299,40 +307,49 @@ class Gene_Expression_Dataset:
 
         return label_means
 
-    def compare_gene_expression(self, label_1, label_2=None):
+    def compare_gene_expression(self, label_1, label_2=None,
+                                use_normalized=False):
 
         gene_value_scores = {}
 
-        min_value = self._data_frame[self._data_frame > 0].min().min()
+        if use_normalized:
+            gene_counts = self._normalized_gene_counts
+        else:
+            gene_counts = self._gene_counts
+
+        min_value = gene_counts[gene_counts > 0].min().min()
 
         if isinstance(label_1, str):
             label_1_cells = self._label_cells[label_1]
         else:
-            label_1_cells = set(self._data_frame.columns)
+            label_1_cells = set(gene_counts.columns)
 
             for label in label_1:
                 label_1_cells = \
                     label_1_cells.intersection(self._label_cells[label])
 
         if label_2 is None:
-            label_2_cells = set(self._data_frame.columns).difference(
+            label_2_cells = set(gene_counts.columns).difference(
                 label_1_cells)
         elif isinstance(label_2, str):
             label_2_cells = self._label_cells[label_2]
         else:
-            label_2_cells = set(self._data_frame.columns)
+            label_2_cells = set(gene_counts.columns)
 
             for label in label_2:
                 label_2_cells = \
                     label_2_cells.intersection(self._label_cells[label])
 
-        for gene, gene_counts in self._data_frame.iterrows():
+        for gene, gene_counts in gene_counts.iterrows():
 
+            # TODO: Call this something else
             sample_1_values = gene_counts[label_1_cells]
             sample_2_values = gene_counts[label_2_cells]
 
             sample_1_mean = sample_1_values.mean()
+            sample_1_SD = sample_1_values.std()
             sample_2_mean = sample_2_values.mean()
+            sample_2_SD = sample_2_values.std()
 
             if sample_1_mean == 0:
                 sample_1_mean = min_value / 2
@@ -343,9 +360,16 @@ class Gene_Expression_Dataset:
 
             _, p_value = stats.ttest_ind(sample_1_values, sample_2_values)
 
-            gene_value_scores[gene] = (log_2_fold_change, p_value)
+            gene_value_scores[gene] = (log_2_fold_change, p_value,
+                                       sample_1_mean, sample_1_SD,
+                                       sample_2_mean, sample_2_SD)
 
-        return gene_value_scores
+        df = pandas.DataFrame.from_dict(gene_value_scores, orient="index")
+
+        df.columns = ["Log2 Fold Change", "p-value", "Group 1 Mean",
+                      "Group 1 SD", "Group 2 Mean", "Group 2 SD"]
+
+        return df
 
     def normalize(self, method=Normalization_Method.STD):
 
@@ -353,14 +377,16 @@ class Gene_Expression_Dataset:
 
         if method == self.Normalization_Method.STD:
 
-            gene_stds = self._data_frame.std(axis=1)
+            gene_stds = self._gene_counts.std(axis=1)
 
-            self._data_frame = self._data_frame.div(gene_stds, axis=0)
+            self._normalized_gene_counts = self._gene_counts.copy().div(
+                gene_stds, axis=0)
 
         elif method == self.Normalization_Method.ECDF:
 
+            self._normalized_gene_counts = self._gene_counts.copy()
             gene_index = 0
-            for gene, gene_counts in self._data_frame.iterrows():
+            for gene, gene_counts in self._normalized_gene_counts.iterrows():
 
                 value_counts = gene_counts.value_counts()
                 eCDF = value_counts.sort_index().cumsum() * 1. / self.num_cells
@@ -377,7 +403,7 @@ class Gene_Expression_Dataset:
     def save(self):
 
         Gene_Expression_Dataset.write_pandas_csv(
-            self._data_frame, self._get_gene_counts_file_path())
+            self._gene_counts, self._get_gene_counts_file_path())
 
         for method, data_frame in self._transformed.items():
 
@@ -395,7 +421,7 @@ class Gene_Expression_Dataset:
 
         gene_count_file_path = os.path.join(dataset_path, "gene_counts.csv")
 
-        self._data_frame = Gene_Expression_Dataset.read_pandas_csv(
+        self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_count_file_path)
 
         self._cell_transcript_counts = Gene_Expression_Dataset.read_pandas_csv(
