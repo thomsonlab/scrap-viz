@@ -22,7 +22,7 @@ virus_count_data_frame = pandas.read_csv(
     virus_count_file_path, sep=",", header=0, index_col=0)
 
 for virus_name, cell_virus_counts in virus_count_data_frame.iterrows():
-    virus_cells = set(cell_virus_counts[cell_virus_counts > 1].index)
+    virus_cells = set(cell_virus_counts[cell_virus_counts > 5].index)
     gene_expression_dataset.label_cells(virus_name, virus_cells)
 
 gene_expression_dataset.filter_low_gene_counts(3)
