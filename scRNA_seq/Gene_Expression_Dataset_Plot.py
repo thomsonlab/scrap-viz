@@ -407,7 +407,7 @@ class Gene_Expression_Dataset_Plot:
                 children=[
 
                     dcc.Input(id="label_name", type="text", value=""),
-                    html.Button("Label Cluster", id="add_label_button"),
+                    html.Button("Label Cluster", id="add_label_button")
                 ]
             ),
             html.Div(className="row", children=[
@@ -460,6 +460,13 @@ class Gene_Expression_Dataset_Plot:
         ])
 
         @self._app.callback(
+            dash.dependencies.Output("manage_label_dropdown", "value"),
+            [dash.dependencies.Input("delete_label_button", "n_clicks")]
+        )
+        def delete_button_clicked_clear_dropdown(n_clicks):
+            return ""
+
+        @self._app.callback(
             dash.dependencies.Output("labels", "children"),
             [dash.dependencies.Input("delete_label_button", "n_clicks"),
              dash.dependencies.Input("add_label_button", "n_clicks")],
@@ -497,11 +504,13 @@ class Gene_Expression_Dataset_Plot:
 
                 self._gene_expression_dataset.label_cells(label_name_to_add,
                                                           cells)
+                self._gene_expression_dataset.save()
 
                 return self._get_label_dropdowns()
             else:
                 self._n_clicks_delete_label = delete_label_n_clicks
                 self._gene_expression_dataset.delete_label(label_to_delete)
+                self._gene_expression_dataset.save()
 
                 return self._get_label_dropdowns()
 

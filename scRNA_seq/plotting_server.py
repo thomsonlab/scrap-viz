@@ -17,8 +17,8 @@ dataset_path = os.path.expanduser(
 gene_expression_dataset = Gene_Expression_Dataset(dataset_path)
 
 
-gene_expression_dataset.filter_low_gene_counts(5)
-gene_expression_dataset.filter_low_transcript_cells(2000)
+gene_expression_dataset.filter_low_gene_counts(2)
+gene_expression_dataset.filter_low_transcript_cells(1000)
 gene_expression_dataset.normalize_cells(
     Gene_Expression_Dataset.Data_Mode.READS_PER_MILLION_TRANSCRIPTS)
 gene_expression_dataset.normalize_genes(

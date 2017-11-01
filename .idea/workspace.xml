@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="1f784891-f414-458c-a38c-f1317c357687" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/.idea/inspectionProfiles/Project_Default.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scRNA_seq/Gene.py" afterPath="$PROJECT_DIR$/scRNA_seq/Gene.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset.py" afterPath="$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset_Plot.py" afterPath="$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset_Plot.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/scRNA_seq/plotting_server.py" afterPath="$PROJECT_DIR$/scRNA_seq/plotting_server.py" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/virus_clustering.py" afterPath="$PROJECT_DIR$/virus_clustering.py" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -37,8 +33,8 @@
       <file leaf-file-name="virus_clustering.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/virus_clustering.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="180">
-              <caret line="46" column="39" lean-forward="false" selection-start-line="46" selection-start-column="39" selection-end-line="46" selection-end-column="39" />
+            <state relative-caret-position="252">
+              <caret line="50" column="62" lean-forward="true" selection-start-line="50" selection-start-column="62" selection-end-line="50" selection-end-column="62" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -56,21 +52,21 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Gene.py" pinned="false" current-in-tab="true">
+      <file leaf-file-name="Gene.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scRNA_seq/Gene.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="182">
-              <caret line="29" column="46" lean-forward="true" selection-start-line="29" selection-start-column="46" selection-end-line="29" selection-end-column="46" />
+            <state relative-caret-position="144">
+              <caret line="38" column="43" lean-forward="true" selection-start-line="38" selection-start-column="43" selection-end-line="38" selection-end-column="43" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="plotting_server.py" pinned="false" current-in-tab="false">
+      <file leaf-file-name="plotting_server.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/scRNA_seq/plotting_server.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="108">
-              <caret line="6" column="46" lean-forward="false" selection-start-line="6" selection-start-column="46" selection-end-line="6" selection-end-column="46" />
+            <state relative-caret-position="468">
+              <caret line="35" column="0" lean-forward="true" selection-start-line="35" selection-start-column="0" selection-end-line="35" selection-end-column="0" />
               <folding>
                 <element signature="e#0#9#0" expanded="true" />
               </folding>
@@ -81,8 +77,8 @@
       <file leaf-file-name="Gene_Expression_Dataset.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="81">
-              <caret line="456" column="0" lean-forward="true" selection-start-line="456" selection-start-column="0" selection-end-line="456" selection-end-column="0" />
+            <state relative-caret-position="225">
+              <caret line="121" column="33" lean-forward="true" selection-start-line="121" selection-start-column="33" selection-end-line="121" selection-end-column="33" />
               <folding>
                 <element signature="e#0#13#0" expanded="true" />
               </folding>
@@ -105,8 +101,8 @@
       <file leaf-file-name="Gene_Expression_Dataset_Plot.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset_Plot.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="117">
-              <caret line="159" column="29" lean-forward="false" selection-start-line="159" selection-start-column="29" selection-end-line="159" selection-end-column="29" />
+            <state relative-caret-position="367">
+              <caret line="515" column="0" lean-forward="true" selection-start-line="515" selection-start-column="0" selection-end-line="515" selection-end-column="0" />
               <folding>
                 <element signature="e#0#11#0" expanded="true" />
               </folding>
@@ -135,16 +131,11 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>_data_containers</find>
-      <find>label cluster</find>
-      <find>label_name:</find>
-      <find>add_cluster_button</find>
       <find>add_clus</find>
       <find>add</find>
       <find>clusters</find>
       <find>&quot;Cluster&quot;</find>
       <find>delete_label_button</find>
-      <find>add_label_button</find>
       <find>label_name_to</find>
       <find>label_to_delte</find>
       <find>label_name_to_add</find>
@@ -164,7 +155,12 @@
       <find>_get_tSNE_tab</find>
       <find>gene_counts</find>
       <find>value</find>
+      <find>delete_</find>
+      <find>add_label_button</find>
+      <find>_get_cell_labels_file_path</find>
       <find>TODO</find>
+      <find>save_bu</find>
+      <find>save</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -179,9 +175,9 @@
         <option value="$PROJECT_DIR$/clustering.py" />
         <option value="$PROJECT_DIR$/virus_clustering.py" />
         <option value="$PROJECT_DIR$/scRNA_seq/Gene.py" />
-        <option value="$PROJECT_DIR$/scRNA_seq/plotting_server.py" />
         <option value="$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset.py" />
         <option value="$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset_Plot.py" />
+        <option value="$PROJECT_DIR$/scRNA_seq/plotting_server.py" />
       </list>
     </option>
   </component>
@@ -465,11 +461,11 @@
       <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32901832" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32914045" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.38679245" sideWeight="0.49815497" order="7" side_tool="false" content_ui="tabs" />
-      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.38679245" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
+      <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.38679245" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Terminal" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Favorites" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="true" content_ui="tabs" />
-      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.3962264" sideWeight="0.4960464" order="3" side_tool="false" content_ui="tabs" />
+      <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.3962264" sideWeight="0.4960464" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Cvs" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="4" side_tool="false" content_ui="tabs" />
       <window_info id="Message" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
       <window_info id="Commander" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="0" side_tool="false" content_ui="tabs" />
@@ -502,7 +498,14 @@
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
-      <option name="time" value="42" />
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset.py</url>
+          <line>520</line>
+          <option name="timeStamp" value="42" />
+        </line-breakpoint>
+      </breakpoints>
+      <option name="time" value="43" />
     </breakpoint-manager>
     <watches-manager />
   </component>
@@ -892,16 +895,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scRNA_seq/plotting_server.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="108">
-          <caret line="6" column="46" lean-forward="false" selection-start-line="6" selection-start-column="46" selection-end-line="6" selection-end-column="46" />
-          <folding>
-            <element signature="e#0#9#0" expanded="true" />
-          </folding>
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/scRNA_seq/plotting.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="151">
@@ -914,18 +907,26 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/virus_clustering.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="180">
-          <caret line="46" column="39" lean-forward="false" selection-start-line="46" selection-start-column="39" selection-end-line="46" selection-end-column="39" />
+        <state relative-caret-position="252">
+          <caret line="50" column="62" lean-forward="true" selection-start-line="50" selection-start-column="62" selection-end-line="50" selection-end-column="62" />
           <folding>
             <element signature="e#0#9#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
+    <entry file="file://$PROJECT_DIR$/scRNA_seq/Gene.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="144">
+          <caret line="38" column="43" lean-forward="true" selection-start-line="38" selection-start-column="43" selection-end-line="38" selection-end-column="43" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
     <entry file="file://$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset_Plot.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="117">
-          <caret line="159" column="29" lean-forward="false" selection-start-line="159" selection-start-column="29" selection-end-line="159" selection-end-column="29" />
+        <state relative-caret-position="367">
+          <caret line="515" column="0" lean-forward="true" selection-start-line="515" selection-start-column="0" selection-end-line="515" selection-end-column="0" />
           <folding>
             <element signature="e#0#11#0" expanded="true" />
           </folding>
@@ -934,19 +935,21 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/scRNA_seq/Gene_Expression_Dataset.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="81">
-          <caret line="456" column="0" lean-forward="true" selection-start-line="456" selection-start-column="0" selection-end-line="456" selection-end-column="0" />
+        <state relative-caret-position="225">
+          <caret line="121" column="33" lean-forward="true" selection-start-line="121" selection-start-column="33" selection-end-line="121" selection-end-column="33" />
           <folding>
             <element signature="e#0#13#0" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/scRNA_seq/Gene.py">
+    <entry file="file://$PROJECT_DIR$/scRNA_seq/plotting_server.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="182">
-          <caret line="29" column="46" lean-forward="true" selection-start-line="29" selection-start-column="46" selection-end-line="29" selection-end-column="46" />
-          <folding />
+        <state relative-caret-position="468">
+          <caret line="35" column="0" lean-forward="true" selection-start-line="35" selection-start-column="0" selection-end-line="35" selection-end-column="0" />
+          <folding>
+            <element signature="e#0#9#0" expanded="true" />
+          </folding>
         </state>
       </provider>
     </entry>
