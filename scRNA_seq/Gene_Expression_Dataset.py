@@ -202,10 +202,6 @@ class Gene_Expression_Dataset:
         self._gene_counts = self._gene_counts.drop(
             cell_names_below_threshold, axis=1)
 
-        for label in self._label_cells:
-            self._label_cells[label] = self._label_cells[label].difference(
-                cell_names_below_threshold)
-
         self.filter_low_gene_counts(self._gene_count_threshold)
 
         self._cell_transcript_counts = self._cell_transcript_counts.drop(
@@ -260,6 +256,9 @@ class Gene_Expression_Dataset:
 
     def transform(self, method=Transformation_Method.PCA, num_dimensions=2,
                   use_normalized=False):
+
+        if use_normalized and self._normalized_gene_counts is None:
+            use_normalized = False
 
         if method == self.Transformation_Method.PCA:
 
@@ -378,6 +377,9 @@ class Gene_Expression_Dataset:
     def compare_gene_expression(self, label_1, label_2=None,
                                 use_normalized=True):
 
+        if use_normalized and self._normalized_gene_counts is None:
+            use_normalized = False
+
         gene_value_scores = {}
 
         label_1_cells = self.get_cells(label_1)
@@ -428,7 +430,8 @@ class Gene_Expression_Dataset:
 
             log_2_fold_change = math.log2(sample_1_mean / sample_2_mean)
 
-            _, p_value = stats.ranksums(sample_1_values, sample_2_values)
+            # _, p_value = stats.ranksums(sample_1_values, sample_2_values)
+            _, p_value = stats.ks_2samp(sample_1_values, sample_2_values)
 
             gene_value_scores[gene] = (log_2_fold_change, p_value,
                                        sample_1_mean, sample_1_SD,
@@ -440,10 +443,10 @@ class Gene_Expression_Dataset:
                       "Group 1 SD", "Group 2 Mean", "Group 2 SD"]
 
         p_values = df["p-value"]
-        #
-        # _, p_values, _, _ = multipletests(p_values)
-        #
-        # df["p-value"] = p_values
+
+        _, p_values, _, _ = multipletests(p_values, method="bonferroni")
+
+        df["p-value"] = p_values
 
         return df
 
