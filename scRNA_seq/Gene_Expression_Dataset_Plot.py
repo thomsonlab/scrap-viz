@@ -6,7 +6,9 @@ from .Gene_Expression_Dataset import Gene_Expression_Dataset
 import plotly.figure_factory as ff
 from scRNA_seq import Gene
 import pandas
+import json
 
+verbose = False
 
 class Gene_Expression_Dataset_Plot:
 
@@ -30,6 +32,9 @@ class Gene_Expression_Dataset_Plot:
         self._n_clicks_de_next = 0
         self._n_clicks_add_label = None
         self._n_clicks_delete_label = None
+        self._column_to_sort = 1
+        self._regenerate_de = False
+        self._de_figure = None
 
     def get_tSNE_figure(self, highlighted_clusters=None):
 
@@ -112,10 +117,7 @@ class Gene_Expression_Dataset_Plot:
     def generate_differential_gene_expression_table(data_frame):
 
         if data_frame is None:
-            return [
-                dcc.Graph(
-                    id="de_table_graph",
-                    figure=ff.create_table(pandas.DataFrame()))]
+            return ff.create_table(pandas.DataFrame())
 
         genes = data_frame.index
 
@@ -139,12 +141,9 @@ class Gene_Expression_Dataset_Plot:
 
         data_frame = data_frame.apply(lambda x: x.apply(lambda y: "%.3e" % y))
 
-        return [
-            dcc.Graph(
-                id="de_table_graph", figure=ff.create_table(
-                    data_frame, index=True, index_title="Gene",
-                    hoverinfo="text", text=hover_texts),
-                config={'displayModeBar': False})]
+        return ff.create_table(
+            data_frame, index=True, index_title="Gene", hoverinfo="text",
+            text=hover_texts)
 
     @staticmethod
     def generate_label_counts_table(label_counts):
@@ -331,21 +330,19 @@ class Gene_Expression_Dataset_Plot:
                 ),
                 html.Div(id="de_pane", children=[
                     html.Div(
-                        id="de_table", children=
-                        Gene_Expression_Dataset_Plot.
-                        generate_differential_gene_expression_table(None)
+                        id="de_table", children=[
+                            dcc.Graph(
+                                id="de_table_graph",
+                                figure=go.Figure(),
+                                config={'displayModeBar': False})
+                        ]
                     ),
                     html.Div(
                         id="de_plot_holder",
                         children=[
                             dcc.Graph(id="de_plot")
                         ]
-                    ),
-                    html.Div(
-                        id="de_gene_range_label",
-                        children=[],
-                        style={"display": "none"}),
-                    html.Div(id="de_data", children=[])
+                    )
                 ], style={"width": "60%", "display": "inline-block"}),
                 html.Div(
                     id="gene_pane",
@@ -446,7 +443,9 @@ class Gene_Expression_Dataset_Plot:
         ]
 
         self._data_containers = [
-            html.Div(id="labels", children=[], style={"display": "none"})
+            html.Div(id="labels", children=[], style={"display": "none"}),
+            html.Div(id="de_data", children=[], style={"display": "none"}),
+            html.Div(id="gene_range", children=[], style={"display": "none"})
         ]
 
         self._app.layout = html.Div([
@@ -464,6 +463,9 @@ class Gene_Expression_Dataset_Plot:
             [dash.dependencies.Input("delete_label_button", "n_clicks")]
         )
         def delete_button_clicked_clear_dropdown(n_clicks):
+
+            if verbose:
+                print("delete_button_clicked_clear_dropdown")
             return ""
 
         @self._app.callback(
@@ -477,6 +479,9 @@ class Gene_Expression_Dataset_Plot:
         def label_added_or_deleted(delete_label_n_clicks, add_label_n_clicks,
                                    label_name_to_add, selected_data,
                                    label_to_delete):
+
+            if verbose:
+                print("label_added_or_deleted")
 
             current_labels = self._gene_expression_dataset.get_labels()
 
@@ -519,6 +524,8 @@ class Gene_Expression_Dataset_Plot:
             [dash.dependencies.Input("labels", "children")]
         )
         def update_label_management_dropdown(label_dropdowns):
+            if verbose:
+                print("update_label_management_dropdown")
             return self._get_label_options()
 
         @self._app.callback(
@@ -527,6 +534,8 @@ class Gene_Expression_Dataset_Plot:
              dash.dependencies.Input("differential_expression_button",
                                      "n_clicks")])
         def tabs_clicked_update_tSNE_tab(clustering_button_clicks, _):
+            if verbose:
+                print("tabs_clicked_update_tSNE_tab")
 
             if clustering_button_clicks is not None and \
                     clustering_button_clicks > self._clustering_n_clicks:
@@ -541,6 +550,8 @@ class Gene_Expression_Dataset_Plot:
             dash.dependencies.Output("label_dropdowns", "children"),
             [dash.dependencies.Input("labels", "children")])
         def label_added_update_label_dropdowns(n_clicks):
+            if verbose:
+                print("label_added_update_label_dropdowns")
 
             return self._get_label_dropdowns()
 
@@ -548,6 +559,8 @@ class Gene_Expression_Dataset_Plot:
             dash.dependencies.Output("label_name", "value"),
             [dash.dependencies.Input("add_label_button", "n_clicks")])
         def label_added_clear_label_field(_):
+            if verbose:
+                print("label_added_clear_label_field")
             return ""
 
         @self._app.callback(
@@ -556,6 +569,8 @@ class Gene_Expression_Dataset_Plot:
              dash.dependencies.Input("differential_expression_button",
                                      "n_clicks")])
         def tabs_clicked_update_de_tab(_, differential_expression_clicks):
+            if verbose:
+                print("tabs_clicked_update_de_tab")
 
             if differential_expression_clicks is not None and \
                     differential_expression_clicks > \
@@ -567,33 +582,37 @@ class Gene_Expression_Dataset_Plot:
                 return {"display": "none"}
 
         @self._app.callback(
-            dash.dependencies.Output("de_gene_range_label", "children"),
+            dash.dependencies.Output("gene_range", "children"),
             [dash.dependencies.Input("de_previous_button", "n_clicks"),
              dash.dependencies.Input("de_next_button", "n_clicks")])
         def update_ge_range(n_clicks_de_previous, n_clicks_de_next):
 
-            if n_clicks_de_next is None or n_clicks_de_previous is None:
-                return
+            if verbose:
+                print("update_ge_range")
 
-            if n_clicks_de_next > self._n_clicks_de_next:
+            if n_clicks_de_next is None or n_clicks_de_previous is None:
+                pass
+            elif n_clicks_de_next > self._n_clicks_de_next:
                 self._n_clicks_de_next = n_clicks_de_next
                 self._de_start_range += 20
-
-            if n_clicks_de_previous > self._n_clicks_de_previous:
+                self._regenerate_de = True
+            elif n_clicks_de_previous > self._n_clicks_de_previous:
                 self._n_clicks_de_previous = n_clicks_de_previous
 
                 if self._de_start_range != 0:
                     self._de_start_range -= 20
-            #
-            # label_text = "Genes %i-%i" % (
-            #     self._de_start_range, self._de_start_range + 20)
+                    self._regenerate_de = True
 
-            return
+            gene_range = {"start": self._de_start_range}
+
+            return json.dumps(gene_range)
 
         @self._app.callback(
             dash.dependencies.Output("de_next_button", "n_clicks"),
             [dash.dependencies.Input("de_button", "n_clicks")])
         def clear_next_button_n_clicks(n_clicks):
+            if verbose:
+                print("clear_next_button_n_clicks")
             if n_clicks is None or n_clicks == 0:
                 return
             else:
@@ -605,6 +624,8 @@ class Gene_Expression_Dataset_Plot:
             dash.dependencies.Output("de_previous_button", "n_clicks"),
             [dash.dependencies.Input("de_button", "n_clicks")])
         def clear_previous_button_n_clicks(n_clicks):
+            if verbose:
+                print("clear_previous_button_n_clicks")
             if n_clicks is None or n_clicks == 0:
                 return
             else:
@@ -614,6 +635,9 @@ class Gene_Expression_Dataset_Plot:
             dash.dependencies.Output("tSNE", "figure"),
             [dash.dependencies.Input("cluster_filter_dropdown", "value")])
         def update_plot_from_cluster_filter(selected_clusters):
+
+            if verbose:
+                print("update_plot_from_cluster_filter")
 
             if not selected_clusters:
                 selected_clusters = None
@@ -626,6 +650,9 @@ class Gene_Expression_Dataset_Plot:
              dash.dependencies.Input("labels", "children")])
         def cluster_filter_updated(cluster_filter_values, clusters):
 
+            if verbose:
+                print("cluster_filter_updated")
+
             label_counts = self._gene_expression_dataset.get_label_counts(
                 cluster_filter_values)
 
@@ -634,7 +661,9 @@ class Gene_Expression_Dataset_Plot:
         @self._app.callback(
             dash.dependencies.Output("de_plot", "figure"),
             [dash.dependencies.Input("de_data", "children")])
-        def de_clicked_update_plot(_):
+        def de_clicked_update_plot(de_data):
+            if verbose:
+                print("de_clicked_update_plot")
             return self._get_de_plot()
 
         @self._app.callback(
@@ -643,9 +672,15 @@ class Gene_Expression_Dataset_Plot:
             [dash.dependencies.State("subgroup_1_dropdown", "value"),
              dash.dependencies.State("subgroup_2_dropdown", "value")])
         def new_de_clicked(n_clicks_de, subgroup_1_labels, subgroup_2_labels):
+            if verbose:
+                print("new_de_clicked")
+
+            de_data = {"ready": False}
 
             if n_clicks_de is None or n_clicks_de == 0:
-                return []
+                print("Setting de_data to:")
+                print(de_data)
+                return json.dumps(de_data)
 
             if n_clicks_de > self._n_clicks_de:
                 self._de_start_range = 0
@@ -678,28 +713,81 @@ class Gene_Expression_Dataset_Plot:
 
                     self._subgroup_1_labels = subgroup_1_labels
                     self._subgroup_2_labels = subgroup_2_labels
-            return []
+
+                    self._regenerate_de = True
+                    de_data["ready"] = True
+
+            print("Setting de_data to:")
+            print(de_data)
+            return json.dumps(de_data)
 
         @self._app.callback(
-            dash.dependencies.Output("de_table", "children"),
+            dash.dependencies.Output("de_table_graph", "figure"),
             [dash.dependencies.Input("de_data", "children"),
-             dash.dependencies.Input("de_gene_range_label", "children")])
-        def get_differential_expression_clicked(_1, _2):
+             dash.dependencies.Input("gene_range", "children"),
+             dash.dependencies.Input("de_table_graph", "clickData")])
+        def get_differential_expression_clicked(de_data, gene_range, click_data):
+            if verbose:
+                print("get_differential_expression_clicked")
+
+            if click_data is not None:
+                x = click_data["points"][0]["x"]
+                y = click_data["points"][0]["y"]
+                if y == 0 and x > 0:
+                    if x - 1 != self._column_to_sort:
+                        self._column_to_sort = x - 1
+                        self._de_start_range = 0
+
+                        if self._column_to_sort == 0:
+                            self._de_stats["Log2 Change Abs"] = \
+                                abs(self._de_stats["Log2 Change"])
+                            self._de_stats = self._de_stats.sort_values(
+                                "Log2 Change Abs", ascending=False)
+                            self._de_stats = self._de_stats.drop(
+                                "Log2 Change Abs",
+                                axis=1)
+                        elif self._column_to_sort == 1:
+                            self._de_stats["Log2 Change Abs"] = \
+                                abs(self._de_stats["Log2 Change"])
+                            self._de_stats = self._de_stats.sort_values(
+                                ["p-value", "Log2 Change Abs"],
+                                ascending=[True, False]
+                            )
+                            self._de_stats = self._de_stats.drop(
+                                "Log2 Change Abs",
+                                axis=1)
+                        else:
+                            column_to_sort_by = \
+                                self._de_stats.columns[self._column_to_sort]
+                            self._de_stats = self._de_stats.sort_values(
+                                column_to_sort_by, ascending=False)
+                        self._regenerate_de = True
 
             if self._de_stats is not None:
+                if self._regenerate_de:
 
-                de = self._de_stats.iloc[
-                     self._de_start_range:self._de_start_range+20]
+                    self._regenerate_de = False
 
-                return self.generate_differential_gene_expression_table(de)
+                    de = self._de_stats.iloc[
+                         self._de_start_range:self._de_start_range+20]
+
+                    self._de_figure = \
+                        self.generate_differential_gene_expression_table(de)
+
+                    return self._de_figure
+                else:
+                    return self._de_figure
             else:
-                return []
+                self._de_figure = go.Figure()
+                return self._de_figure
 
         @self._app.callback(
             dash.dependencies.Output("gene_pane", "children"),
             [dash.dependencies.Input("de_table_graph", "clickData")]
         )
         def de_figure_clicked(click_data):
+            if verbose:
+                print("de_figure_clicked")
 
             if click_data is None:
                 return []
@@ -713,6 +801,8 @@ class Gene_Expression_Dataset_Plot:
             dash.dependencies.Output("cluster_filter_dropdown", "options"),
             [dash.dependencies.Input("labels", "children")])
         def data_edited(labels):
+            if verbose:
+                print("data_edited")
             return self._get_label_options()
 
         self._app.run_server()
