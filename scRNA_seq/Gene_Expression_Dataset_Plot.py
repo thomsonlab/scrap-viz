@@ -8,7 +8,7 @@ from scRNA_seq import Gene
 import pandas
 import json
 
-verbose = True
+verbose = False
 
 class Gene_Expression_Dataset_Plot:
 
@@ -32,6 +32,9 @@ class Gene_Expression_Dataset_Plot:
         self._n_clicks_de_next = 0
         self._n_clicks_add_label = None
         self._n_clicks_delete_label = None
+        self._column_to_sort = 1
+        self._regenerate_de = False
+        self._de_figure = None
 
     def get_tSNE_figure(self, highlighted_clusters=None):
 
@@ -592,11 +595,13 @@ class Gene_Expression_Dataset_Plot:
             elif n_clicks_de_next > self._n_clicks_de_next:
                 self._n_clicks_de_next = n_clicks_de_next
                 self._de_start_range += 20
+                self._regenerate_de = True
             elif n_clicks_de_previous > self._n_clicks_de_previous:
                 self._n_clicks_de_previous = n_clicks_de_previous
 
                 if self._de_start_range != 0:
                     self._de_start_range -= 20
+                    self._regenerate_de = True
 
             gene_range = {"start": self._de_start_range}
 
@@ -709,6 +714,7 @@ class Gene_Expression_Dataset_Plot:
                     self._subgroup_1_labels = subgroup_1_labels
                     self._subgroup_2_labels = subgroup_2_labels
 
+                    self._regenerate_de = True
                     de_data["ready"] = True
 
             print("Setting de_data to:")
@@ -718,42 +724,62 @@ class Gene_Expression_Dataset_Plot:
         @self._app.callback(
             dash.dependencies.Output("de_table_graph", "figure"),
             [dash.dependencies.Input("de_data", "children"),
-             dash.dependencies.Input("gene_range", "children")])
-        def get_differential_expression_clicked(de_data, gene_range):
+             dash.dependencies.Input("gene_range", "children"),
+             dash.dependencies.Input("de_table_graph", "clickData")])
+        def get_differential_expression_clicked(de_data, gene_range, click_data):
             if verbose:
                 print("get_differential_expression_clicked")
 
-            # Check if someone clicked on a column
-            # if click_data is not None and click_data["points"][0]["y"] == 0 and\
-            #         click_data["points"][0]["x"] > 0:
-            #
-            #     sort_index = click_data["points"][0]["x"] - 1
-            #
-            #     if sort_index == 0:
-            #         self._de_stats["Log2 Change Abs"] = \
-            #             abs(self._de_stats["Log2 Change"])
-            #         self._de_stats = self._de_stats.sort_values(
-            #             ["p-value", "Log2 Change Abs"],
-            #             ascending=[True, False]
-            #         )
-            #         self._de_stats = self._de_stats.drop("Log2 Change Abs",
-            #                                              axis=1)
-            #     else:
-            #
-            #         self._de_stats = self._de_stats.sort_values(
-            #             self._de_stats.columns[sort_index]
-            #         )
-            #
-            #     self._de_start_range = 0
+            if click_data is not None:
+                x = click_data["points"][0]["x"]
+                y = click_data["points"][0]["y"]
+                if y == 0 and x > 0:
+                    if x - 1 != self._column_to_sort:
+                        self._column_to_sort = x - 1
+                        self._de_start_range = 0
+
+                        if self._column_to_sort == 0:
+                            self._de_stats["Log2 Change Abs"] = \
+                                abs(self._de_stats["Log2 Change"])
+                            self._de_stats = self._de_stats.sort_values(
+                                "Log2 Change Abs", ascending=False)
+                            self._de_stats = self._de_stats.drop(
+                                "Log2 Change Abs",
+                                axis=1)
+                        elif self._column_to_sort == 1:
+                            self._de_stats["Log2 Change Abs"] = \
+                                abs(self._de_stats["Log2 Change"])
+                            self._de_stats = self._de_stats.sort_values(
+                                ["p-value", "Log2 Change Abs"],
+                                ascending=[True, False]
+                            )
+                            self._de_stats = self._de_stats.drop(
+                                "Log2 Change Abs",
+                                axis=1)
+                        else:
+                            column_to_sort_by = \
+                                self._de_stats.columns[self._column_to_sort]
+                            self._de_stats = self._de_stats.sort_values(
+                                column_to_sort_by, ascending=False)
+                        self._regenerate_de = True
 
             if self._de_stats is not None:
+                if self._regenerate_de:
 
-                de = self._de_stats.iloc[
-                     self._de_start_range:self._de_start_range+20]
+                    self._regenerate_de = False
 
-                return self.generate_differential_gene_expression_table(de)
+                    de = self._de_stats.iloc[
+                         self._de_start_range:self._de_start_range+20]
+
+                    self._de_figure = \
+                        self.generate_differential_gene_expression_table(de)
+
+                    return self._de_figure
+                else:
+                    return self._de_figure
             else:
-                return go.Figure()
+                self._de_figure = go.Figure()
+                return self._de_figure
 
         @self._app.callback(
             dash.dependencies.Output("gene_pane", "children"),
