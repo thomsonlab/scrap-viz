@@ -480,7 +480,7 @@ class Gene_Expression_Dataset:
 
         for label in self._label_cells.keys():
 
-            num_cells = len(self.get_cells(label))
+            num_cells = len(cells.intersection(self.get_cells(label)))
             cell_ratio = num_cells / total_cells
 
             if num_cells > 0:
