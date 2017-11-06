@@ -81,7 +81,8 @@ class Gene_Expression_Dataset_Plot:
                         'colorscale': 'Viridis',
                         'showscale': True
                     },
-                    text=hover_text
+                    text=hover_text,
+                    hoverinfo="text"
                 )
                 ],
             'layout': go.Layout(
@@ -307,7 +308,7 @@ class Gene_Expression_Dataset_Plot:
 
     def _get_label_options(self):
 
-        labels = self._gene_expression_dataset.get_labels()
+        labels = sorted(self._gene_expression_dataset.get_labels())
 
         label_options = [{"label": x, "value": x} for x in labels]
 
@@ -391,7 +392,7 @@ class Gene_Expression_Dataset_Plot:
                         multi=True
                     )
                 ],
-                style={"width": "50%"}
+                style={"width": "45%"}
             ),
 
             html.Div(
@@ -407,37 +408,16 @@ class Gene_Expression_Dataset_Plot:
                     "width": "50%",
                     "display": "inline-block"}
             ),
-
-            html.Div(
-                id="label_table",
-                children=[
-                    Gene_Expression_Dataset_Plot.generate_label_counts_table(
-                        self._gene_expression_dataset.get_label_counts()
-                    )],
-                style={
-                    "width": "30%",
-                    "display": "inline-block",
-                    "vertical-align": "top"
-                }
-            ),
-
-            html.Div(
-                id="cluster_labeling",
-                children=[
-
-                    dcc.Input(id="label_name", type="text", value=""),
-                    html.Button("Label Cluster", id="add_label_button")
-                ]
-            ),
-            html.Div(className="row", children=[
-
-                html.Div([
-                    html.Pre(id='selected-data')
-                ])
-            ]),
             html.Div(
                 id="label_management",
                 children=[
+                    html.Div(
+                        id="cluster_labeling",
+                        children=[
+                            dcc.Input(id="label_name", type="text", value=""),
+                            html.Button("Label Cluster", id="add_label_button")
+                        ]
+                    ),
                     dcc.Dropdown(
                         id="manage_label_dropdown",
                         options=self._get_label_options(),
@@ -446,7 +426,33 @@ class Gene_Expression_Dataset_Plot:
                     html.Button("Delete", id="delete_label_button"),
                     html.Label("", id="label_cell_count_text")
                 ],
-                style={"width": "25%"}
+                style={
+                    "width": "25%",
+                    "display": "inline-block",
+                    "vertical-align": "top",
+                    "marginLeft": 25
+                }
+            ),
+            html.Div(
+                id="label_table",
+                children=[
+                    Gene_Expression_Dataset_Plot.generate_label_counts_table(
+                        self._gene_expression_dataset.get_label_counts()
+                    )],
+                style={
+                    "width": "45%",
+                    "display": "inline-block",
+                    "vertical-align": "top"
+                }
+            ),
+            html.Div(
+                id="gene_count_table",
+                children=[],
+                style={
+                    "width": "45%",
+                    "display": "inline-block",
+                    "marginLeft": 25
+                }
             )
             ]
         )
@@ -826,5 +832,33 @@ class Gene_Expression_Dataset_Plot:
             if verbose:
                 print("data_edited")
             return self._get_label_options()
+
+        @self._app.callback(
+            dash.dependencies.Output("gene_count_table", "children"),
+            [dash.dependencies.Input("tSNE", "clickData")])
+        def tSNE_clicked(click_data):
+
+            if click_data is None:
+                return []
+
+            click_text = click_data["points"][0]["text"]
+            cell_name = click_text[:click_text.find("<BR>")]
+
+            gene_counts = pandas.DataFrame(
+                self._gene_expression_dataset.
+                get_gene_counts_for_cell(cell_name))
+
+            gene_counts.columns = ["Count"]
+
+            gene_counts = gene_counts[gene_counts != 0].\
+                sort_values("Count", ascending=False)[0:50]
+
+            gene_counts["Count"] = gene_counts["Count"].apply(
+                lambda x: "%.3e" % x)
+
+            return dcc.Graph(
+                id="gene_counts_figure", figure=ff.create_table(
+                    gene_counts, index=True, index_title="Gene"),
+                config={'displayModeBar': False})
 
         self._app.run_server()

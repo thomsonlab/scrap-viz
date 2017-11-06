@@ -461,6 +461,10 @@ class Gene_Expression_Dataset:
 
         return df
 
+    def get_gene_counts_for_cell(self, cell):
+
+        return self._gene_counts[cell]
+
     def get_gene_counts(self, gene, filter_labels=None):
 
         cells = self.get_cells(filter_labels)
