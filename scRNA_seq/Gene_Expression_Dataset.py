@@ -163,7 +163,7 @@ class Gene_Expression_Dataset:
         label_counts = []
 
         for label, cells in self._label_cells:
-            label_counts.append((label, len(cells)))
+            label_counts.append((label, len(self.get_cells(label))))
 
         return label_counts
 
@@ -309,7 +309,8 @@ class Gene_Expression_Dataset:
             return self._gene_counts.columns
         else:
             if isinstance(labels, str):
-                return self._label_cells[labels]
+                return self._label_cells[labels].intersection(
+                    self._gene_counts.columns)
             else:
                 cells = self._gene_counts.columns
 
@@ -330,11 +331,14 @@ class Gene_Expression_Dataset:
         label_cells = {}
 
         for label in self._label_cells:
+
+            cell_names = self.get_cells(label)
+
             if transform is None:
-                label_cells[label] = self._gene_counts[self._label_cells[label]]
+                label_cells[label] = self._gene_counts[cell_names]
             else:
                 label_cells[label] = \
-                    self._transformed[transform].loc[self._label_cells[label]]
+                    self._transformed[transform].loc[cell_names]
 
         return label_cells
 
@@ -362,7 +366,9 @@ class Gene_Expression_Dataset:
 
         for label in label_cells:
 
-            label_data_frame = self._gene_counts[list(label_cells[label])]
+            cell_names = self.get_cells(label)
+
+            label_data_frame = self._gene_counts[list(cell_names)]
 
             if is_median:
                 label_mean = label_data_frame.median(axis=1)
@@ -424,11 +430,16 @@ class Gene_Expression_Dataset:
             sample_2_SD = sample_2_values.std()
 
             if sample_1_mean == 0:
-                sample_1_mean = min_value / 2
+                sample_1_mean_for_log = min_value / 2
+            else:
+                sample_1_mean_for_log = sample_1_mean
             if sample_2_mean == 0:
-                sample_2_mean = min_value / 2
+                sample_2_mean_for_log = min_value / 2
+            else:
+                sample_2_mean_for_log = sample_2_mean
 
-            log_2_fold_change = math.log2(sample_1_mean / sample_2_mean)
+            log_2_fold_change = math.log2(sample_1_mean_for_log /
+                                          sample_2_mean_for_log)
 
             # _, p_value = stats.ranksums(sample_1_values, sample_2_values)
             _, p_value = stats.ks_2samp(sample_1_values, sample_2_values)
@@ -469,7 +480,7 @@ class Gene_Expression_Dataset:
 
         for label in self._label_cells.keys():
 
-            num_cells = len(self._label_cells[label].intersection(cells))
+            num_cells = len(self.get_cells(label))
             cell_ratio = num_cells / total_cells
 
             if num_cells > 0:
