@@ -159,7 +159,7 @@ class Gene_Expression_Dataset_Plot:
                 label_counts, index=True, index_title="Label"),
             config={'displayModeBar': False})
 
-    def _get_gene_histograms(self, gene_index):
+    def _get_gene_eCDF(self, gene_index):
 
         if self._de_stats is None:
             return []
@@ -178,29 +178,51 @@ class Gene_Expression_Dataset_Plot:
         group_1_counts = self._gene_expression_dataset.get_gene_counts(
             gene, self._subgroup_1_labels
         )
-        group_1_counts = group_1_counts.value_counts()
+        group_1_counts = group_1_counts.value_counts().sort_index()
+        group_1_cum_sum = group_1_counts.cumsum()
 
-        group_1_eCDF = group_1_counts.sort_index().cumsum() /\
-            sum(group_1_counts.values)
+        group_1_eCDF = group_1_cum_sum / sum(group_1_counts.values)
+
+        group_1_hover_text = []
+        for gene_count_index in range(len(group_1_eCDF)):
+            gene_count = group_1_eCDF.index[gene_count_index]
+            eCDF_value = group_1_eCDF.values[gene_count_index]
+            num_cells = group_1_cum_sum.values[gene_count_index]
+            group_1_hover_text.append(
+                "%i cell(s) (%.2f%%)<BR>with count <= %f" % (
+                    num_cells, eCDF_value*100, gene_count))
 
         group_1_scatter = go.Scatter(
             x=group_1_eCDF.index,
             y=group_1_eCDF.values,
-            name=subgroup_1_title
+            name=subgroup_1_title,
+            text=group_1_hover_text,
+            hoverinfo="text"
         )
 
         group_2_counts = self._gene_expression_dataset.get_gene_counts(
             gene, self._subgroup_2_labels
         )
-        group_2_counts = group_2_counts.value_counts()
+        group_2_counts = group_2_counts.value_counts().sort_index()
+        group_2_cum_sum = group_2_counts.cumsum()
 
-        group_2_eCDF = group_2_counts.sort_index().cumsum() /\
-            sum(group_2_counts.values)
+        group_2_eCDF = group_2_cum_sum / sum(group_2_counts.values)
+
+        group_2_hover_text = []
+        for gene_count_index in range(len(group_2_eCDF)):
+            gene_count = group_2_eCDF.index[gene_count_index]
+            eCDF_value = group_2_eCDF.values[gene_count_index]
+            num_cells = group_2_cum_sum.values[gene_count_index]
+            group_2_hover_text.append(
+                "%i cell(s) (%.2f%%)<BR>with count <= %f" % (
+                    num_cells, eCDF_value*100, gene_count))
 
         group_2_scatter = go.Scatter(
             x=group_2_eCDF.index,
             y=group_2_eCDF.values,
-            name=subgroup_2_title
+            name=subgroup_2_title,
+            text=group_2_hover_text,
+            hoverinfo="text"
         )
 
         layout = go.Layout(
@@ -795,7 +817,7 @@ class Gene_Expression_Dataset_Plot:
             if click_data["points"][0]["y"] == 0:
                 return []
 
-            return self._get_gene_histograms(click_data["points"][0]["y"] - 1)
+            return self._get_gene_eCDF(click_data["points"][0]["y"] - 1)
 
         @self._app.callback(
             dash.dependencies.Output("cluster_filter_dropdown", "options"),
