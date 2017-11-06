@@ -339,8 +339,9 @@ class Gene_Expression_Dataset_Plot:
 
     def _get_differential_expression_tab(self):
 
-        differential_expression_tab = \
-            html.Div(id="de_tab", children=[
+        differential_expression_tab = html.Div(
+            id="de_tab",
+            children=[
                 html.Div(
                     id="label_dropdowns",
                     children=self._get_label_dropdowns(),
@@ -373,87 +374,89 @@ class Gene_Expression_Dataset_Plot:
                     style={
                         "width": "39%",
                         "display": "inline-block",
-                        "vertical-align": "top"}),
-            ])
+                        "vertical-align": "top"})
+            ]
+        )
 
         return differential_expression_tab
 
     def _get_tSNE_tab(self):
 
-        tSNE_tab = html.Div(id="tSNE_tab", children=[
+        tSNE_tab = html.Div(
+            id="tSNE_tab",
+            children=[
+                html.Div(
+                    id="cluster_filter_container",
+                    children=[
+                        dcc.Dropdown(
+                            id="cluster_filter_dropdown",
+                            options=self._get_label_options(),
+                            value=[],
+                            multi=True
+                        )
+                    ],
+                    style={"width": "50%"}
+                ),
 
-            html.Div(
-                id="cluster_filter_container",
-                children=[
-                    dcc.Dropdown(
-                        id="cluster_filter_dropdown",
-                        options=self._get_label_options(),
-                        value=[],
-                        multi=True
-                    )
-                ],
-                style={"width": "45%"}
-            ),
+                html.Div(
+                    id="tSNE_div",
+                    children=[
 
-            html.Div(
-                id="tSNE_div",
-                children=[
-
-                    dcc.Graph(
-                        id='tSNE',
-                        figure=self._tSNE_figure
-                    )
-                ],
-                style={
-                    "width": "50%",
-                    "display": "inline-block"}
-            ),
-            html.Div(
-                id="label_management",
-                children=[
-                    html.Div(
-                        id="cluster_labeling",
-                        children=[
-                            dcc.Input(id="label_name", type="text", value=""),
-                            html.Button("Label Cluster", id="add_label_button")
-                        ]
-                    ),
-                    dcc.Dropdown(
-                        id="manage_label_dropdown",
-                        options=self._get_label_options(),
-                        value=[]
-                    ),
-                    html.Button("Delete", id="delete_label_button"),
-                    html.Label("", id="label_cell_count_text")
-                ],
-                style={
-                    "width": "25%",
-                    "display": "inline-block",
-                    "vertical-align": "top",
-                    "marginLeft": 25
-                }
-            ),
-            html.Div(
-                id="label_table",
-                children=[
-                    Gene_Expression_Dataset_Plot.generate_label_counts_table(
-                        self._gene_expression_dataset.get_label_counts()
-                    )],
-                style={
-                    "width": "45%",
-                    "display": "inline-block",
-                    "vertical-align": "top"
-                }
-            ),
-            html.Div(
-                id="gene_count_table",
-                children=[],
-                style={
-                    "width": "45%",
-                    "display": "inline-block",
-                    "marginLeft": 25
-                }
-            )
+                        dcc.Graph(
+                            id='tSNE',
+                            figure=self._tSNE_figure
+                        )
+                    ],
+                    style={
+                        "width": "50%",
+                        "display": "inline-block"}
+                ),
+                html.Div(
+                    id="label_management",
+                    children=[
+                        html.Div(
+                            id="cluster_labeling",
+                            children=[
+                                dcc.Input(id="label_name", type="text", value=""),
+                                html.Button("Label Cluster", id="add_label_button")
+                            ]
+                        ),
+                        dcc.Dropdown(
+                            id="manage_label_dropdown",
+                            options=self._get_label_options(),
+                            value=[]
+                        ),
+                        html.Button("Delete", id="delete_label_button"),
+                        html.Label("", id="label_cell_count_text")
+                    ],
+                    style={
+                        "width": "25%",
+                        "display": "inline-block",
+                        "vertical-align": "top",
+                        "marginLeft": 25
+                    }
+                ),
+                html.Div(
+                    id="label_table",
+                    children=[
+                        Gene_Expression_Dataset_Plot.generate_label_counts_table(
+                            self._gene_expression_dataset.get_label_counts()
+                        )],
+                    style={
+                        "width": "50%",
+                        "display": "inline-block",
+                        "vertical-align": "top"
+                    }
+                ),
+                html.Div(
+                    id="gene_count_table",
+                    children=[],
+                    style={
+                        "width": "45%",
+                        "display": "inline-block",
+                        "marginLeft": 25
+                    }
+                )
             ]
         )
 
@@ -482,7 +485,7 @@ class Gene_Expression_Dataset_Plot:
             html.Button("Differential Expression",
                         id="differential_expression_button"),
 
-            html.Div(id="tabs", children=self._tabs),
+            html.Div(id="tabs", children=self._tabs, style={"marginTop": 10}),
             html.Div(id="data", children=self._data_containers)
         ])
 

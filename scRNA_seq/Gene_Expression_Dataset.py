@@ -441,7 +441,6 @@ class Gene_Expression_Dataset:
             log_2_fold_change = math.log2(sample_1_mean_for_log /
                                           sample_2_mean_for_log)
 
-            # _, p_value = stats.ranksums(sample_1_values, sample_2_values)
             _, p_value = stats.ks_2samp(sample_1_values, sample_2_values)
 
             gene_value_scores[gene] = (log_2_fold_change, p_value,
@@ -499,10 +498,10 @@ class Gene_Expression_Dataset:
 
         if method == self.Normalization_Method.STD:
 
-            gene_stds = self._gene_counts.std(axis=1)
+            gene_sds = self._gene_counts.std(axis=1)
 
             self._normalized_gene_counts = self._gene_counts.copy().div(
-                gene_stds, axis=0)
+                gene_sds, axis=0)
 
         elif method == self.Normalization_Method.ECDF:
 
@@ -513,28 +512,16 @@ class Gene_Expression_Dataset:
                 value_counts = gene_counts.value_counts()
                 eCDF = value_counts.sort_index().cumsum() * 1. / self.num_cells
 
-                map = {}
+                value_count_map = {}
                 for i, j in eCDF.iteritems():
-                    map[i] = j
+                    value_count_map[i] = j
 
                 for cell, gene_count in gene_counts.iteritems():
-                    gene_counts[cell] = map[gene_count]
+                    gene_counts[cell] = value_count_map[gene_count]
 
                 gene_index += 1
 
     def save(self):
-
-        # Gene_Expression_Dataset.write_pandas_csv(
-        #     self._gene_counts, self._get_gene_counts_file_path())
-        #
-        # for method, data_frame in self._transformed.items():
-        #
-        #     method_name = \
-        #         self.Transformation_Method(method).name
-        #
-        #     file_path = os.path.join(self._dataset_path, "%s.csv" % method_name)
-        #
-        #     Gene_Expression_Dataset.write_pandas_csv(data_frame, file_path)
 
         Gene_Expression_Dataset.write_label_cells_to_file(
             self._label_cells, self._get_cell_labels_file_path())
@@ -545,12 +532,6 @@ class Gene_Expression_Dataset:
 
         self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_count_file_path)
-
-        # duplicate_aggregator = {}
-        # for cell in self._gene_counts.columns:
-        #     duplicate_aggregator[cell] = sum
-
-        # self._gene_counts = self._gene_counts.groupby(level=0).sum()
 
         self._cell_transcript_counts = Gene_Expression_Dataset.read_pandas_csv(
             self.get_cell_transcript_counts_file_path(self._dataset_path))
