@@ -483,9 +483,26 @@ class Gene_Expression_Dataset:
 
         return df
 
-    def get_gene_counts_for_cell(self, cell):
+    def get_gene_expression_for_cell(self, cell):
 
-        return self._gene_counts[cell]
+        cell_gene_counts = self._gene_counts[cell]
+        cell_gene_de = cell_gene_counts.copy()
+
+        non_zero_min = self._gene_counts[self._gene_counts > 0].min().min()
+        cell_gene_de[cell_gene_de == 0] = non_zero_min / 2
+
+        for gene, value in cell_gene_counts.items():
+            cell_gene_de[gene] = \
+                math.log2(cell_gene_de[gene]/self._gene_means[gene])
+
+        cell_gene_expression = pandas.DataFrame(
+            {
+                "Count": cell_gene_counts,
+                "Log2 Fold Change": cell_gene_de
+            }
+        )
+
+        return cell_gene_expression
 
     def get_gene_counts(self, gene, filter_labels=None):
 

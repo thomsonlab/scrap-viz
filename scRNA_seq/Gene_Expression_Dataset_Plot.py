@@ -1045,23 +1045,27 @@ class Gene_Expression_Dataset_Plot:
             click_text = click_data["points"][0]["text"]
             cell_name = click_text[:click_text.find("<BR>")]
 
-            gene_counts = pandas.DataFrame(
-                self._gene_expression_dataset.
-                get_gene_counts_for_cell(cell_name))
+            gene_expression = self._gene_expression_dataset.\
+                get_gene_expression_for_cell(cell_name)
 
-            gene_counts.columns = ["Count"]
+            gene_expression = gene_expression[gene_expression["Count"] != 0]
 
-            gene_counts = gene_counts[gene_counts != 0].\
-                sort_values("Count", ascending=False)[0:50]
+            gene_expression["Log2 Change Abs"] = \
+                abs(gene_expression["Log2 Fold Change"])
 
-            gene_counts["Count"] = gene_counts["Count"].apply(
-                lambda x: "%.3e" % x)
+            gene_expression = gene_expression.sort_values(
+                "Log2 Change Abs", ascending=False)
 
-            gene_counts.columns = ["%s Count" % cell_name]
+            gene_expression = gene_expression.drop("Log2 Change Abs", axis=1)
+
+            gene_expression = gene_expression[0:50]
+
+            gene_expression = gene_expression.\
+                apply(lambda x: x.apply(lambda y: "%.3e" % y))
 
             return dcc.Graph(
                 id="gene_counts_figure", figure=ff.create_table(
-                    gene_counts, index=True, index_title="Gene"),
+                    gene_expression, index=True, index_title="Gene"),
                 config={'displayModeBar': False})
 
         self._app.run_server()
