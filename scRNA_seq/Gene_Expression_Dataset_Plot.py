@@ -7,8 +7,10 @@ import plotly.figure_factory as ff
 from scRNA_seq import Gene
 import pandas
 import json
+import math
 
-verbose = False
+verbose = True
+
 
 class Gene_Expression_Dataset_Plot:
 
@@ -30,22 +32,18 @@ class Gene_Expression_Dataset_Plot:
         self._n_clicks_de = 0
         self._n_clicks_de_previous = 0
         self._n_clicks_de_next = 0
+        self._n_clicks_filter_by = 0
         self._n_clicks_add_label = None
         self._n_clicks_delete_label = None
         self._column_to_sort = 1
         self._regenerate_de = False
         self._de_figure = None
 
-    def get_tSNE_figure(self, highlighted_clusters=None):
+    def get_tSNE_figure(self, highlighted_cells=None, cell_color_values=None):
 
         gene_expression = \
             self._gene_expression_dataset.get_cell_gene_expression(
                 Gene_Expression_Dataset.Transformation_Method.TSNE)
-
-        highlighted_cells = \
-            self._gene_expression_dataset.get_cells(highlighted_clusters)
-
-        cell_read_counts = self._gene_expression_dataset._cell_transcript_counts
 
         x_values = []
         y_values = []
@@ -58,13 +56,16 @@ class Gene_Expression_Dataset_Plot:
             x_values.append(gene_expression['tSNE_1'])
             y_values.append(gene_expression['tSNE_2'])
 
-            read_count = cell_read_counts.loc[cell].values[0]
-
-            if cell in highlighted_cells:
-                colors.append(read_count)
+            if cell_color_values is not None:
+                color_value = cell_color_values[cell]
             else:
-                colors.append('rgb(150, 150, 150')
-            hover_text.append("%s<BR>%s" % (cell, read_count))
+                color_value = "rgb(0, 0, 255)"
+
+            if highlighted_cells is not None and cell in highlighted_cells:
+                colors.append(color_value)
+            else:
+                colors.append("rgba(150, 150, 150, 0.25")
+            hover_text.append("%s<BR>%s" % (cell, color_value))
             self._cells.append(cell)
 
         figure = {
@@ -314,6 +315,14 @@ class Gene_Expression_Dataset_Plot:
 
         return label_options
 
+    def _get_gene_options(self):
+
+        genes = sorted(self._gene_expression_dataset.get_genes())
+
+        gene_options = [{"label": x, "value": x} for x in genes]
+
+        return gene_options
+
     def _get_label_dropdowns(self):
 
         label_options = self._get_label_options()
@@ -380,6 +389,38 @@ class Gene_Expression_Dataset_Plot:
 
         return differential_expression_tab
 
+    @staticmethod
+    def get_cell_value_range_slider(min_value, max_value):
+
+        value_range = max_value - min_value
+        log_range = math.ceil(math.log10(value_range))
+        value_range = math.pow(10, log_range)
+        interval = value_range/10
+
+        min_value = math.floor(min_value/interval)*interval
+        max_value = math.ceil(max_value/interval)*interval
+
+        marks = {}
+        mark_value = min_value
+
+        while mark_value <= max_value:
+
+            if round(mark_value) == mark_value:
+                mark_value = int(mark_value)
+
+            marks[mark_value] = {'label': mark_value}
+            mark_value += interval
+
+        return dcc.RangeSlider(
+            id="cell_value_range_slider",
+            min=min_value,
+            max=max_value,
+            step=interval/5,
+            value=[min_value, max_value],
+            allowCross=False,
+            marks=marks
+        )
+
     def _get_tSNE_tab(self):
 
         tSNE_tab = html.Div(
@@ -409,18 +450,64 @@ class Gene_Expression_Dataset_Plot:
                     ],
                     style={
                         "width": "50%",
-                        "display": "inline-block"}
+                        "display": "inline-block",
+                        "marginTop": 25}
+                ),
+                html.Div(
+                    id="gene_filter_management",
+                    children=[
+                        html.Div(
+                            id="gene_filter_dropdown_div",
+                            children=[
+                                dcc.Dropdown(
+                                    id="gene_filter_dropdown",
+                                    options=self._get_gene_options(),
+                                    value=[],
+                                    multi=False
+                                )
+                            ],
+                            style={
+                                "width": "50%"
+                            }
+                        ),
+                        html.Div(
+                            id="cell_value_range_slider_div",
+                            children=[
+                                self.get_cell_value_range_slider(-2, 2)
+                            ],
+                            style={
+                                "marginTop": 10,
+                                "marginBottom": 20,
+                                "width": "75%"
+                            }
+                        )
+                    ],
+                    style={
+                        "width": "45%",
+                        "display": "inline-block",
+                        "vertical-align": "top",
+                        "marginLeft": 25
+                    }
+                ),
+                html.Div(
+                    id="selection_labeling",
+                    children=[
+                        dcc.Input(
+                            id="label_name",
+                            type="text", value=""
+                        ),
+                        html.Button(
+                            "Label Selected",
+                            id="add_label_button"
+                        )
+                    ],
+                    style={
+                        "width": "25%"
+                    }
                 ),
                 html.Div(
                     id="label_management",
                     children=[
-                        html.Div(
-                            id="cluster_labeling",
-                            children=[
-                                dcc.Input(id="label_name", type="text", value=""),
-                                html.Button("Label Cluster", id="add_label_button")
-                            ]
-                        ),
                         dcc.Dropdown(
                             id="manage_label_dropdown",
                             options=self._get_label_options(),
@@ -431,17 +518,18 @@ class Gene_Expression_Dataset_Plot:
                     ],
                     style={
                         "width": "25%",
-                        "display": "inline-block",
-                        "vertical-align": "top",
-                        "marginLeft": 25
+                        "marginTop": 10,
+                        "marginBottom": 10
                     }
                 ),
                 html.Div(
                     id="label_table",
                     children=[
-                        Gene_Expression_Dataset_Plot.generate_label_counts_table(
+                        Gene_Expression_Dataset_Plot.
+                        generate_label_counts_table(
                             self._gene_expression_dataset.get_label_counts()
-                        )],
+                        )
+                    ],
                     style={
                         "width": "50%",
                         "display": "inline-block",
@@ -476,7 +564,11 @@ class Gene_Expression_Dataset_Plot:
         self._data_containers = [
             html.Div(id="labels", children=[], style={"display": "none"}),
             html.Div(id="de_data", children=[], style={"display": "none"}),
-            html.Div(id="gene_range", children=[], style={"display": "none"})
+            html.Div(id="gene_range", children=[], style={"display": "none"}),
+            html.Div(id="cell_color_values", children=[],
+                     style={"display": "none"}),
+            html.Div(id="unfiltered_cells", children=[],
+                     style={"display": "none"})
         ]
 
         self._app.layout = html.Div([
@@ -505,11 +597,12 @@ class Gene_Expression_Dataset_Plot:
              dash.dependencies.Input("add_label_button", "n_clicks")],
             [dash.dependencies.State("label_name", "value"),
              dash.dependencies.State("tSNE", "selectedData"),
-             dash.dependencies.State("manage_label_dropdown", "value")]
+             dash.dependencies.State("manage_label_dropdown", "value"),
+             dash.dependencies.State("unfiltered_cells", "children")]
         )
         def label_added_or_deleted(delete_label_n_clicks, add_label_n_clicks,
                                    label_name_to_add, selected_data,
-                                   label_to_delete):
+                                   label_to_delete, unfiltered_cells):
 
             if verbose:
                 print("label_added_or_deleted")
@@ -520,26 +613,37 @@ class Gene_Expression_Dataset_Plot:
                     and (add_label_n_clicks is None or add_label_n_clicks == 0):
                 return current_labels
 
+            # If n_clicks of delete button is the same, this is an add label
             if delete_label_n_clicks == self._n_clicks_delete_label:
                 self._n_clicks_add_label = add_label_n_clicks
-
-                if selected_data is None:
-                    self._selected_points = None
-                    return current_labels
 
                 if label_name_to_add == "":
                     return current_labels
 
-                self._selected_points = selected_data["points"]
+                if unfiltered_cells:
+                    unfiltered_cells = json.loads(unfiltered_cells)
+                    if not unfiltered_cells:
+                        unfiltered_cells = None
+                else:
+                    unfiltered_cells = None
 
-                point_indices = [
-                    point["pointNumber"] for point in
-                    self._selected_points]
+                if selected_data:
+                    selected_points = selected_data["points"]
 
-                cells = [self._cells[i] for i in point_indices]
+                    point_indices = [
+                        point["pointNumber"] for point in selected_points]
+
+                    selected_cells = [self._cells[i] for i in point_indices]
+                else:
+                    selected_cells = self._cells
+
+                selected_cells = set(selected_cells)
+                unfiltered_cells = set(unfiltered_cells)
+
+                cells_to_label = selected_cells.intersection(unfiltered_cells)
 
                 self._gene_expression_dataset.label_cells(label_name_to_add,
-                                                          cells)
+                                                          cells_to_label)
                 self._gene_expression_dataset.save()
 
                 return self._get_label_dropdowns()
@@ -663,17 +767,110 @@ class Gene_Expression_Dataset_Plot:
                 return 0
 
         @self._app.callback(
-            dash.dependencies.Output("tSNE", "figure"),
-            [dash.dependencies.Input("cluster_filter_dropdown", "value")])
-        def update_plot_from_cluster_filter(selected_clusters):
+            dash.dependencies.Output("cell_value_range_slider_div", "children"),
+            [dash.dependencies.Input("cell_color_values", "children")])
+        def update_cell_value_range_slider(cell_color_values):
 
             if verbose:
-                print("update_plot_from_cluster_filter")
+                print("update_cell_value_range_slider")
+                print(cell_color_values)
+
+            if not cell_color_values:
+                return []
+
+            de_data = json.loads(cell_color_values)
+
+            if not de_data:
+                return []
+
+            min_value = min(de_data.values())
+            max_value = max(de_data.values())
+
+            return [self.get_cell_value_range_slider(min_value, max_value)]
+
+        @self._app.callback(
+            dash.dependencies.Output("cell_color_values", "children"),
+            [dash.dependencies.Input("gene_filter_dropdown", "value")])
+        def update_cell_color_values(gene):
+
+            if not gene:
+                cell_read_counts = \
+                    self._gene_expression_dataset.get_cell_transcript_counts()
+                cell_read_counts = cell_read_counts["TOTAL_TRANSCRIPT_COUNT"]
+                cell_read_count_ints = \
+                    {gene: int(count)
+                        for gene, count in cell_read_counts.items()}
+                return json.dumps(cell_read_count_ints)
+
+            de = self._gene_expression_dataset.get_cell_gene_differential(gene)
+
+            return json.dumps(de.to_dict())
+
+        @self._app.callback(
+            dash.dependencies.Output("unfiltered_cells", "children"),
+            [dash.dependencies.Input("cluster_filter_dropdown", "value"),
+             dash.dependencies.Input("cell_value_range_slider", "value")],
+            [dash.dependencies.State("cell_color_values", "children")])
+        def set_unfiltered_cells(selected_clusters, cell_value_range,
+                                 cell_color_values):
+
+            if verbose:
+                print("set_unfiltered_cells")
 
             if not selected_clusters:
                 selected_clusters = None
 
-            return self.get_tSNE_figure(highlighted_clusters=selected_clusters)
+            if cell_color_values:
+                cells_gene_de = json.loads(cell_color_values)
+                if not cells_gene_de:
+                    cells_gene_de = None
+            else:
+                cells_gene_de = None
+
+            if not cell_value_range:
+                cell_value_range = None
+
+            cells_in_cluster = \
+                self._gene_expression_dataset.get_cells(selected_clusters)
+
+            cells_to_remove = set()
+            if cell_value_range is not None and cells_gene_de is not None:
+                for cell in cells_in_cluster:
+                    cell_color_value = cells_gene_de[cell]
+                    if cell_color_value < cell_value_range[0] \
+                            or cell_color_value > cell_value_range[1]:
+                        cells_to_remove.add(cell)
+                unfiltered_cells = cells_in_cluster.difference(cells_to_remove)
+            else:
+                unfiltered_cells = cells_in_cluster
+
+            return json.dumps(list(unfiltered_cells))
+
+        @self._app.callback(
+            dash.dependencies.Output("tSNE", "figure"),
+            [dash.dependencies.Input("unfiltered_cells", "children")],
+            [dash.dependencies.State("cell_color_values", "children")])
+        def update_plot_from_filters(
+                unfiltered_cells, cell_color_values):
+
+            if verbose:
+                print("update_plot_from_cluster_filter")
+
+            if cell_color_values:
+                cell_color_values = json.loads(cell_color_values)
+                if not cell_color_values:
+                    cell_color_values = None
+            else:
+                cell_color_values = None
+
+            if unfiltered_cells:
+                unfiltered_cells = json.loads(unfiltered_cells)
+            else:
+                unfiltered_cells = None
+
+            return self.get_tSNE_figure(
+                highlighted_cells=unfiltered_cells,
+                cell_color_values=cell_color_values)
 
         @self._app.callback(
             dash.dependencies.Output("label_table", "children"),
@@ -757,7 +954,8 @@ class Gene_Expression_Dataset_Plot:
             [dash.dependencies.Input("de_data", "children"),
              dash.dependencies.Input("gene_range", "children"),
              dash.dependencies.Input("de_table_graph", "clickData")])
-        def get_differential_expression_clicked(de_data, gene_range, click_data):
+        def get_differential_expression_clicked(
+                de_data, gene_range, click_data):
             if verbose:
                 print("get_differential_expression_clicked")
 
@@ -858,6 +1056,8 @@ class Gene_Expression_Dataset_Plot:
 
             gene_counts["Count"] = gene_counts["Count"].apply(
                 lambda x: "%.3e" % x)
+
+            gene_counts.columns = ["%s Count" % cell_name]
 
             return dcc.Graph(
                 id="gene_counts_figure", figure=ff.create_table(

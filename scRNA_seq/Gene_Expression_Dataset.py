@@ -1,6 +1,5 @@
 import pandas
 from enum import Enum
-from . import plotting
 import random
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -144,6 +143,8 @@ class Gene_Expression_Dataset:
         self._transformed = {}
         self._label_cells = {}
         self._cell_transcript_counts = None
+        self._gene_means = None
+        self._normalized_gene_means = None
 
         self._load_dataset_from_path(dataset_path)
 
@@ -167,15 +168,6 @@ class Gene_Expression_Dataset:
 
         return label_counts
 
-    def plot_cell_transcript_count_eCDF(self):
-
-        cell_transcript_counts = self._gene_counts.sum(axis=0)
-        value_counts = cell_transcript_counts.value_counts()
-        eCDF = value_counts.sort_index().cumsum() * 1. / \
-               self.num_cells
-
-        plotting.plot_eCDF(eCDF)
-
     def filter_low_gene_counts(self, gene_count_threshold):
 
         self._gene_count_threshold = gene_count_threshold
@@ -187,6 +179,12 @@ class Gene_Expression_Dataset:
             (self._gene_counts.max(axis=1) < gene_count_threshold)
 
         self._gene_counts = self._gene_counts[~genes_below_threshold]
+        if self._normalized_gene_counts is not None:
+            self._normalized_gene_counts = \
+                self._normalized_gene_counts[~genes_below_threshold]
+            self._normalized_gene_means = \
+                self._normalized_gene_means[~genes_below_threshold]
+        self._gene_means = self._gene_means[~genes_below_threshold]
 
     def filter_low_transcript_cells(self, transcript_count_threshold):
 
@@ -203,6 +201,12 @@ class Gene_Expression_Dataset:
             cell_names_below_threshold, axis=1)
 
         self.filter_low_gene_counts(self._gene_count_threshold)
+
+        self._gene_means = self._gene_counts.mean(axis=1)
+
+        if self._normalized_gene_counts is not None:
+            self._normalized_gene_means = \
+                self._normalized_gene_counts.mean(axis=1)
 
         self._cell_transcript_counts = self._cell_transcript_counts.drop(
             cell_names_below_threshold)
@@ -237,6 +241,8 @@ class Gene_Expression_Dataset:
                 gene_counts[gene_counts == 0] = zero_probability/zero_counts
 
                 self._gene_counts[cell] = gene_counts
+
+        self._gene_means = self._gene_counts.mean(axis=1)
 
         self._data_mode = data_mode
 
@@ -319,6 +325,10 @@ class Gene_Expression_Dataset:
 
                 return cells
 
+    def get_genes(self):
+
+        return list(self._gene_counts.index)
+
     def get_cell_gene_expression(self, transform=None):
 
         if transform is None:
@@ -379,6 +389,19 @@ class Gene_Expression_Dataset:
             label_means = label_means.append(label_mean)
 
         return label_means
+
+    def get_cell_gene_differential(self, gene):
+
+        cells_gene_count = self._gene_counts.loc[gene]
+
+        non_zero_min = cells_gene_count[cells_gene_count > 0].min()
+
+        cells_gene_count[cells_gene_count == 0] = non_zero_min / 2
+
+        cells_gene_differential = cells_gene_count.apply(
+            lambda x: math.log2(x / self._gene_means[gene]))
+
+        return cells_gene_differential
 
     def compare_gene_expression(self, label_1, label_2=None,
                                 use_normalized=True):
@@ -521,10 +544,16 @@ class Gene_Expression_Dataset:
 
                 gene_index += 1
 
+        self._normalized_gene_means = \
+            self._normalized_gene_counts.mean(axis=1)
+
     def save(self):
 
         Gene_Expression_Dataset.write_label_cells_to_file(
             self._label_cells, self._get_cell_labels_file_path())
+
+    def get_cell_transcript_counts(self):
+        return self._cell_transcript_counts
 
     def _load_dataset_from_path(self, dataset_path):
 
@@ -532,6 +561,8 @@ class Gene_Expression_Dataset:
 
         self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_count_file_path)
+
+        self._gene_means = self._gene_counts.mean(axis=1)
 
         self._cell_transcript_counts = Gene_Expression_Dataset.read_pandas_csv(
             self.get_cell_transcript_counts_file_path(self._dataset_path))
