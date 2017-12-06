@@ -2,10 +2,17 @@ import plotly
 from plotly.graph_objs import Scatter
 from plotly.graph_objs import Layout
 from plotly.graph_objs import Figure
-
+import pandas
 
 
 def plot_eCDF(eCDF_values):
+
+    eCDF_values = pandas.Series(eCDF_values)
+
+    counts = eCDF_values.value_counts().sort_index()
+    cum_sum = counts.cumsum()
+
+    eCDF_values = cum_sum / sum(counts.values)
 
     eCDF_scatter = Scatter(
         x=eCDF_values.index,
@@ -15,7 +22,7 @@ def plot_eCDF(eCDF_values):
 
     layout = Layout(
         xaxis=dict(
-            title="Transcript Count"
+            title="Value"
         ),
         yaxis=dict(
             title="Cumulative Probability"
@@ -27,6 +34,18 @@ def plot_eCDF(eCDF_values):
 
     plotly.offline.plot(figure)
 
+
+def plot_scatter(x, y):
+
+    scatter = Scatter(x=x, y=y)
+
+    data = [scatter]
+
+    layout = Layout(hovermode="closest")
+
+    figure = Figure(data=data, layout=layout)
+
+    plotly.offline.plot(figure)
 
 def plot_differential_expression(sample_means):
 
@@ -78,8 +97,8 @@ def plot_differential_expression(sample_means):
 
 def plot_tSNE(tSNE_transformed):
 
-    x_values = tSNE_transformed.T[0]
-    y_values = tSNE_transformed.T[1]
+    x_values = tSNE_transformed.T.iloc[0]
+    y_values = tSNE_transformed.T.iloc[1]
 
     tSNE_scatter = Scatter(
         x=x_values,

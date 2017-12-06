@@ -8,6 +8,10 @@ import math
 from scipy import stats
 import csv
 from statsmodels.sandbox.stats.multicomp import multipletests
+from sklearn.cluster import KMeans
+import numpy
+import scipy
+from sklearn import mixture
 
 
 class Gene_Expression_Dataset:
@@ -51,10 +55,28 @@ class Gene_Expression_Dataset:
         return os.path.join(dataset_path, "gene_counts.csv")
 
     @staticmethod
-    def initialize_dataset(dataset_path, seed_matrix_file_path):
+    def initialize_dataset(dataset_path, seed_matrices_file_path):
 
-        data_frame = Gene_Expression_Dataset.\
-            read_pandas_csv(seed_matrix_file_path)
+        if isinstance(seed_matrices_file_path, str):
+            seed_matrix_file_path = seed_matrices_file_path
+            data_frame = Gene_Expression_Dataset.\
+                read_pandas_csv(seed_matrix_file_path)
+        elif isinstance(seed_matrices_file_path, list):
+
+            seed_matrix_file_path = seed_matrices_file_path[0]
+
+            data_frames = [Gene_Expression_Dataset.
+                read_pandas_csv(seed_matrix_file_path)]
+
+            for file_index in range(1, len(seed_matrices_file_path)):
+                seed_matrix_file_path = seed_matrices_file_path[file_index]
+                data_frames.append(Gene_Expression_Dataset.
+                    read_pandas_csv(seed_matrix_file_path))
+
+            data_frame = pandas.concat(data_frames, axis=1)
+        else:
+            raise Exception("seed_matrices_file_path must be a path or list "\
+                             "of paths")
 
         genes_below_threshold = \
             (data_frame.max(axis=1) < 1)
@@ -123,7 +145,7 @@ class Gene_Expression_Dataset:
             writer.writerow(label_array)
         cell_labels_file.close()
 
-    def __init__(self, dataset_path, seed_matrix_file_path=None):
+    def __init__(self, dataset_path, name=None, seed_matrix_file_path=None):
 
         if not os.path.exists(dataset_path):
             os.makedirs(dataset_path)
@@ -146,9 +168,11 @@ class Gene_Expression_Dataset:
         self._gene_means = None
         self._normalized_gene_means = None
 
-        self._load_dataset_from_path(dataset_path)
+        if name is None:
+            self._load_dataset_from_path(dataset_path)
+        else:
+            self.load(name)
 
-        self._data_mode = self.Data_Mode.READ_COUNT
         self._gene_count_threshold = 0
 
     def reload(self):
@@ -214,9 +238,6 @@ class Gene_Expression_Dataset:
     def normalize_cells(
             self, data_mode=Data_Mode.READS_PER_MILLION_TRANSCRIPTS):
 
-        if self._data_mode != self.Data_Mode.READ_COUNT:
-            raise Exception("Cells already normalized!")
-
         if data_mode == self.Data_Mode.READS_PER_MILLION_TRANSCRIPTS:
 
             self._gene_counts = self._gene_counts.div(
@@ -227,24 +248,19 @@ class Gene_Expression_Dataset:
 
         elif data_mode == self.Data_Mode.GENE_PROBABILITIES:
 
-            self._zero_genes = self._gene_counts.apply(lambda x: x == 0)
-
             for cell, gene_counts in self._gene_counts.iteritems():
-                value_counts = gene_counts.value_counts()
-                zero_counts = value_counts[0]
-                single_counts = value_counts[1]
+                zero_counts = sum(gene_counts == 0)
+                single_counts = sum(gene_counts == 1)
                 total_count = self._cell_transcript_counts[
                     "TOTAL_TRANSCRIPT_COUNT"][cell]
                 zero_probability = single_counts/total_count
 
-                gene_counts = gene_counts/total_count/(1+zero_probability)
+                gene_counts = gene_counts/total_count*(1-zero_probability)
                 gene_counts[gene_counts == 0] = zero_probability/zero_counts
 
                 self._gene_counts[cell] = gene_counts
 
         self._gene_means = self._gene_counts.mean(axis=1)
-
-        self._data_mode = data_mode
 
     def label_cells(self, label, cells):
 
@@ -285,11 +301,15 @@ class Gene_Expression_Dataset:
         elif method == self.Transformation_Method.TSNE:
 
             if self.Transformation_Method.PCA in self._transformed:
-                transformed = TSNE(verbose=True, perplexity=30).fit_transform(
-                    self._transformed[self.Transformation_Method.PCA])
+                transformed = TSNE(
+                    verbose=True, perplexity=30, n_components=num_dimensions).\
+                    fit_transform(
+                        self._transformed[self.Transformation_Method.PCA])
             else:
-                transformed = TSNE(verbose=True, perplexity=30).fit_transform(
-                    self._normalized_gene_counts.transpose())
+                transformed = TSNE(
+                    verbose=True, perplexity=30, n_components=num_dimensions).\
+                    fit_transform(
+                        self._normalized_gene_counts.transpose())
 
             self._transformed[self.Transformation_Method.TSNE] = \
                 pandas.DataFrame(transformed)
@@ -424,21 +444,20 @@ class Gene_Expression_Dataset:
         else:
             cell_gene_counts = self._gene_counts.copy()
 
-            if self._data_mode == self.Data_Mode.GENE_PROBABILITIES:
-                all_cells = label_1_cells.union(label_2_cells)
-                zero_genes = self._zero_genes[list(all_cells)]
-                genes_to_remove = set()
+        all_cells = label_1_cells.union(label_2_cells)
+        zero_genes = self._zero_genes[list(all_cells)]
+        genes_to_remove = set()
 
-                for gene, gc in cell_gene_counts[list(all_cells)].iterrows():
-                    try:
-                        num_non_zero_genes = sum(~zero_genes.loc[gene])
-                    except TypeError as e:
-                        print(e)
+        for gene, gc in cell_gene_counts[list(all_cells)].iterrows():
+            try:
+                num_non_zero_genes = sum(~zero_genes.loc[gene])
+            except TypeError as e:
+                print(e)
 
-                    if num_non_zero_genes == 0:
-                        genes_to_remove.add(gene)
+            if num_non_zero_genes == 0:
+                genes_to_remove.add(gene)
 
-                cell_gene_counts = cell_gene_counts.drop(list(genes_to_remove))
+        cell_gene_counts = cell_gene_counts.drop(list(genes_to_remove))
 
         min_value = cell_gene_counts[cell_gene_counts > 0].min().min()
 
@@ -564,13 +583,153 @@ class Gene_Expression_Dataset:
         self._normalized_gene_means = \
             self._normalized_gene_counts.mean(axis=1)
 
-    def save(self):
+    def save_labels(self):
 
         Gene_Expression_Dataset.write_label_cells_to_file(
             self._label_cells, self._get_cell_labels_file_path())
 
+    def load(self, name):
+
+        gene_counts_path = os.path.join(self._dataset_path,
+                                        "gene_counts_%s.csv" % name)
+
+        self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
+            gene_counts_path
+        )
+
+        self._zero_genes = self._gene_counts.apply(lambda x: x == 0)
+
+        self._gene_means = self._gene_counts.mean(axis=1)
+
+        normalized_path = os.path.join(self._dataset_path,
+                                       "normalized_%s.csv" % name)
+
+        if os.path.isfile(normalized_path):
+
+            self._normalized_gene_counts = \
+                Gene_Expression_Dataset.read_pandas_csv(normalized_path)
+
+            self._normalized_gene_means = self._gene_counts.mean(axis=1)
+
+        for method_name, method in \
+                self.Transformation_Method.__members__.items():
+
+            file_name = "transformed_%s_%s.csv" % (method_name, name)
+
+            file_path = os.path.join(self._dataset_path, file_name)
+
+            if not os.path.isfile(file_path):
+                continue
+
+            self._transformed[method] = Gene_Expression_Dataset.read_pandas_csv(
+                file_path
+            )
+
+        self._cell_transcript_counts = Gene_Expression_Dataset.read_pandas_csv(
+            self.get_cell_transcript_counts_file_path(self._dataset_path))
+
+        self._label_cells = Gene_Expression_Dataset.get_label_cells_from_file(
+            self.get_cell_labels_file_path(self._dataset_path))
+
+    def save(self, name):
+
+        self.save_labels()
+
+        Gene_Expression_Dataset.write_pandas_csv(
+            self._gene_counts,
+            os.path.join(self._dataset_path, "gene_counts_%s.csv" % name))
+
+        Gene_Expression_Dataset.write_pandas_csv(
+            self._normalized_gene_counts,
+            os.path.join(self._dataset_path, "normalized_%s.csv" % name))
+
+        for method_name, method in \
+                self.Transformation_Method.__members__.items():
+
+            if method not in self._transformed:
+                continue
+
+            file_name = "transformed_%s_%s.csv" % (method_name, name)
+
+            file_path = os.path.join(self._dataset_path, file_name)
+
+            Gene_Expression_Dataset.write_pandas_csv(
+                self._transformed[method],
+                file_path)
+
     def get_cell_transcript_counts(self):
         return self._cell_transcript_counts
+
+    def get_matched_clusters(self, label_1, label_2=None, num_clusters=20,
+                             transformation_method=Transformation_Method.PCA):
+
+        label_1_cells = list(self.get_cells(label_1))
+        label_2_cells = list(self.get_cells(label_2))
+
+        label_1_transformed = \
+            self._transformed[transformation_method].loc[label_1_cells]
+        label_2_transformed = \
+            self._transformed[transformation_method].loc[label_2_cells]
+
+        label_1_k_means = KMeans(n_clusters=num_clusters, random_state=0)
+        label_2_k_means = KMeans(n_clusters=num_clusters, random_state=0)
+
+        label_1_fitted = label_1_k_means.fit(label_1_transformed)
+        label_2_fitted = label_2_k_means.fit(label_2_transformed)
+
+        label_1_cluster_centers = label_1_fitted.cluster_centers_
+        label_2_cluster_centers = label_2_fitted.cluster_centers_
+
+        # label_1_mixture = mixture.GaussianMixture(n_components=num_clusters)
+        # label_2_mixture = mixture.GaussianMixture(n_components=num_clusters)
+        #
+        # label_1_fitted = label_1_mixture.fit(label_1_transformed)
+        # label_2_fitted = label_2_mixture.fit(label_2_transformed)
+        #
+        # label_1_cluster_centers = label_1_fitted.means_
+        # label_2_cluster_centers = label_2_fitted.means_
+
+        cluster_distances = numpy.empty((num_clusters, num_clusters))
+
+        for label_1_cluster_index in range(num_clusters):
+            label_1_cluster_center = \
+                label_1_cluster_centers[label_1_cluster_index]
+            for label_2_cluster_index in range(0, num_clusters):
+                label_2_cluster_center = \
+                    label_2_cluster_centers[label_2_cluster_index]
+                distance = numpy.linalg.norm(
+                    label_1_cluster_center - label_2_cluster_center)
+                cluster_distances[label_1_cluster_index][label_2_cluster_index]\
+                    = distance
+
+        cluster_assignments = scipy.optimize.linear_sum_assignment(
+            cluster_distances)
+
+        label_cells = {}
+
+        label_1_clusters = label_1_fitted.labels_
+        label_2_clusters = label_2_fitted.labels_
+
+        # label_1_clusters = label_1_fitted.predict(label_1_transformed)
+        # label_2_clusters = label_2_fitted.predict(label_2_transformed)
+
+        for cluster_index in range(num_clusters):
+            label_2_cluster_index = cluster_assignments[1][cluster_index]
+
+            label_1_cluster_cells = label_1_transformed[
+                label_1_clusters == cluster_index
+            ]
+
+            label_2_cluster_cells = label_2_transformed[
+                label_2_clusters == label_2_cluster_index
+            ]
+
+            cluster_cells = list(label_1_cluster_cells.index)
+            cluster_cells.extend(list(label_2_cluster_cells.index))
+
+            label_cells["Cluster %i" % cluster_index] = cluster_cells
+
+        return label_cells
 
     def _load_dataset_from_path(self, dataset_path):
 
@@ -579,6 +738,8 @@ class Gene_Expression_Dataset:
         self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_count_file_path)
 
+        self._zero_genes = self._gene_counts.apply(lambda x: x == 0)
+
         self._gene_means = self._gene_counts.mean(axis=1)
 
         self._cell_transcript_counts = Gene_Expression_Dataset.read_pandas_csv(
@@ -586,17 +747,6 @@ class Gene_Expression_Dataset:
 
         self._label_cells = Gene_Expression_Dataset.get_label_cells_from_file(
             self.get_cell_labels_file_path(self._dataset_path))
-
-        for method_name, method in \
-                self.Transformation_Method.__members__.items():
-
-            file_name = "%s.csv" % method_name
-
-            file_path = os.path.join(dataset_path, file_name)
-
-            if os.path.isfile(file_path):
-                self._transformed[method] = pandas.read_csv(
-                    file_path, sep=",", header=0, index_col=0)
 
     def _get_cell_labels_file_path(self):
         return Gene_Expression_Dataset.get_cell_labels_file_path(

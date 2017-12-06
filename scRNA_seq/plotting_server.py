@@ -2,11 +2,25 @@ import os
 from scRNA_seq import Gene_Expression_Dataset
 from scRNA_seq import Gene_Expression_Dataset_Plot
 
-dataset_path = os.path.expanduser(
+virus_H2_dataset_path = os.path.expanduser(
     os.path.join(
-        "~", "Virus_Transcriptomics", "C2-small", "workspace"
+        "~", "Virus_Transcriptomics", "H2-small", "matrixdata", "H2-small_matrix.csv"
     )
 )
+
+virus_C2_dataset_path = os.path.expanduser(
+    os.path.join(
+        "~", "Virus_Transcriptomics", "C2-small", "matrixdata", "C2-small_matrix.csv"
+    )
+)
+
+virus_dataset_path = os.path.expanduser(
+    os.path.join(
+        "~", "Virus_Transcriptomics", "workspace"
+    )
+)
+
+dataset = Gene_Expression_Dataset(virus_dataset_path, [virus_H2_dataset_path, virus_C2_dataset_path])
 
 # dataset_path = os.path.expanduser(
 #     os.path.join(

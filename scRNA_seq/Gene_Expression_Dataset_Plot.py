@@ -644,13 +644,13 @@ class Gene_Expression_Dataset_Plot:
 
                 self._gene_expression_dataset.label_cells(label_name_to_add,
                                                           cells_to_label)
-                self._gene_expression_dataset.save()
+                self._gene_expression_dataset.save_labels()
 
                 return self._get_label_dropdowns()
             else:
                 self._n_clicks_delete_label = delete_label_n_clicks
                 self._gene_expression_dataset.delete_label(label_to_delete)
-                self._gene_expression_dataset.save()
+                self._gene_expression_dataset.save_labels()
 
                 return self._get_label_dropdowns()
 
