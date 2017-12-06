@@ -19,7 +19,7 @@ class Gene_Expression_Dataset_Plot:
 
         self._app = None
         self._gene_expression_dataset = gene_expression_dataset
-        self._tSNE_figure = None
+        self._projection_figure = None
         self._tabs = []
         self._data_containers = []
         self._cells = []
@@ -40,7 +40,7 @@ class Gene_Expression_Dataset_Plot:
         self._regenerate_de = False
         self._de_figure = None
 
-    def get_tSNE_figure(self, transformation_method = None,
+    def get_projection_figure(self, transformation_method = None,
                         highlighted_cells=None, cell_color_values=None):
 
         if transformation_method == None:
@@ -444,10 +444,10 @@ class Gene_Expression_Dataset_Plot:
             marks=marks
         )
 
-    def _get_tSNE_tab(self):
+    def _get_clustering_tab(self):
 
-        tSNE_tab = html.Div(
-            id="tSNE_tab",
+        clustering_tab = html.Div(
+            id="clustering_tab",
             children=[
                 html.Div(
                     id="cluster_display_options",
@@ -480,12 +480,12 @@ class Gene_Expression_Dataset_Plot:
                 ),
 
                 html.Div(
-                    id="tSNE_div",
+                    id="projection_div",
                     children=[
 
                         dcc.Graph(
-                            id='tSNE',
-                            figure=self._tSNE_figure
+                            id='projection',
+                            figure=self._projection_figure
                         )
                     ],
                     style={
@@ -588,7 +588,7 @@ class Gene_Expression_Dataset_Plot:
             ]
         )
 
-        return tSNE_tab
+        return clustering_tab
 
     def start(self):
 
@@ -596,11 +596,11 @@ class Gene_Expression_Dataset_Plot:
         self._app.css.config.serve_locally = True
         self._app.scripts.config.serve_locally = True
 
-        self._tSNE_figure = self.get_tSNE_figure(
+        self._projection_figure = self.get_projection_figure(
             Gene_Expression_Dataset.Transformation_Method.TSNE)
 
         self._tabs = [
-            self._get_tSNE_tab(),
+            self._get_clustering_tab(),
             self._get_differential_expression_tab()
         ]
 
@@ -649,7 +649,7 @@ class Gene_Expression_Dataset_Plot:
             [dash.dependencies.Input("delete_label_button", "n_clicks"),
              dash.dependencies.Input("add_label_button", "n_clicks")],
             [dash.dependencies.State("label_name", "value"),
-             dash.dependencies.State("tSNE", "selectedData"),
+             dash.dependencies.State("projection", "selectedData"),
              dash.dependencies.State("manage_label_dropdown", "value"),
              dash.dependencies.State("unfiltered_cells", "children")]
         )
@@ -717,13 +717,13 @@ class Gene_Expression_Dataset_Plot:
             return self._get_label_options()
 
         @self._app.callback(
-            dash.dependencies.Output("tSNE_tab", "style"),
+            dash.dependencies.Output("clustering_tab", "style"),
             [dash.dependencies.Input("clustering_button", "n_clicks"),
              dash.dependencies.Input("differential_expression_button",
                                      "n_clicks")])
-        def tabs_clicked_update_tSNE_tab(clustering_button_clicks, _):
+        def tabs_clicked_update_clustering_tab(clustering_button_clicks, _):
             if verbose:
-                print("tabs_clicked_update_tSNE_tab")
+                print("tabs_clicked_update_clustering_tab")
 
             if clustering_button_clicks is not None and \
                     clustering_button_clicks > self._clustering_n_clicks:
@@ -900,14 +900,13 @@ class Gene_Expression_Dataset_Plot:
             return json.dumps(list(unfiltered_cells))
 
         @self._app.callback(
-            dash.dependencies.Output("tSNE", "figure"),
+            dash.dependencies.Output("projection", "figure"),
             [dash.dependencies.Input("unfiltered_cells", "children"),
              dash.dependencies.Input("cluster_method_dropdown", "value")],
             [dash.dependencies.State("cell_color_values", "children")])
         def update_plot_from_filters(
                 unfiltered_cells, cluster_method, cell_color_values):
 
-            print(cluster_method)
             if cluster_method is not None:
                 cluster_method = \
                     Gene_Expression_Dataset.Transformation_Method[
@@ -928,7 +927,7 @@ class Gene_Expression_Dataset_Plot:
             else:
                 unfiltered_cells = None
 
-            return self.get_tSNE_figure(cluster_method,
+            return self.get_projection_figure(cluster_method,
                 highlighted_cells=unfiltered_cells,
                 cell_color_values=cell_color_values)
 
@@ -1096,8 +1095,8 @@ class Gene_Expression_Dataset_Plot:
 
         @self._app.callback(
             dash.dependencies.Output("gene_count_table", "children"),
-            [dash.dependencies.Input("tSNE", "clickData")])
-        def tSNE_clicked(click_data):
+            [dash.dependencies.Input("projection", "clickData")])
+        def projection_clicked(click_data):
 
             if click_data is None:
                 return []
