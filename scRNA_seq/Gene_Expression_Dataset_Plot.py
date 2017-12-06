@@ -7,6 +7,8 @@ import plotly.figure_factory as ff
 import pandas
 import json
 import math
+import os
+from flask import send_from_directory
 
 verbose = True
 
@@ -38,11 +40,15 @@ class Gene_Expression_Dataset_Plot:
         self._regenerate_de = False
         self._de_figure = None
 
-    def get_tSNE_figure(self, highlighted_cells=None, cell_color_values=None):
+    def get_tSNE_figure(self, transformation_method = None,
+                        highlighted_cells=None, cell_color_values=None):
+
+        if transformation_method == None:
+            transformation_method = self._get_default_cluster_method()
 
         gene_expression = \
             self._gene_expression_dataset.get_cell_gene_expression(
-                Gene_Expression_Dataset.Transformation_Method.TSNE)
+                transformation_method)
 
         x_values = []
         y_values = []
@@ -50,10 +56,10 @@ class Gene_Expression_Dataset_Plot:
         hover_text = []
         self._cells = []
 
-        for cell, gene_expression in gene_expression.iterrows():
+        for cell, cell_gene_expression in gene_expression.iterrows():
 
-            x_values.append(gene_expression['tSNE_1'])
-            y_values.append(gene_expression['tSNE_2'])
+            x_values.append(cell_gene_expression[gene_expression.columns[0]])
+            y_values.append(cell_gene_expression[gene_expression.columns[1]])
 
             if cell_color_values is not None:
                 color_value = cell_color_values[cell]
@@ -86,8 +92,8 @@ class Gene_Expression_Dataset_Plot:
                 )
                 ],
             'layout': go.Layout(
-                xaxis={'title': 'tSNE 1'},
-                yaxis={'title': 'tSNE 2'},
+                xaxis={'title': gene_expression.columns[0]},
+                yaxis={'title': gene_expression.columns[1]},
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
@@ -315,6 +321,23 @@ class Gene_Expression_Dataset_Plot:
 
         return label_options
 
+    @staticmethod
+    def _get_cluster_method_options():
+
+        label_options = []
+
+        for method_name, method in \
+                Gene_Expression_Dataset.\
+                Transformation_Method.__members__.items():
+            label_options.append({"label": method_name, "value": method_name})
+
+        return label_options
+
+    @staticmethod
+    def _get_default_cluster_method():
+
+        return Gene_Expression_Dataset.Transformation_Method.TSNE
+
     def _get_gene_options(self):
 
         genes = sorted(self._gene_expression_dataset.get_genes())
@@ -427,13 +450,30 @@ class Gene_Expression_Dataset_Plot:
             id="tSNE_tab",
             children=[
                 html.Div(
-                    id="cluster_filter_container",
+                    id="cluster_display_options",
                     children=[
-                        dcc.Dropdown(
-                            id="cluster_filter_dropdown",
-                            options=self._get_label_options(),
-                            value=[],
-                            multi=True
+                        html.Div(children=[
+                            dcc.Dropdown(
+                                id="cluster_filter_dropdown",
+                                options=self._get_label_options(),
+                                value=[],
+                                multi=True
+                            )],
+                            style={
+                                "width": "50%",
+                                "display": "inline-block"
+                            }
+                        ),
+                        html.Div(children=[
+                            dcc.Dropdown(
+                                id="cluster_method_dropdown",
+                                options=self._get_cluster_method_options(),
+                                value=self._get_default_cluster_method().name
+                            )],
+                            style={
+                                "width": "50%",
+                                "display": "inline-block"
+                            }
                         )
                     ],
                     style={"width": "50%"}
@@ -553,8 +593,11 @@ class Gene_Expression_Dataset_Plot:
     def start(self):
 
         self._app = dash.Dash()
+        self._app.css.config.serve_locally = True
+        self._app.scripts.config.serve_locally = True
 
-        self._tSNE_figure = self.get_tSNE_figure()
+        self._tSNE_figure = self.get_tSNE_figure(
+            Gene_Expression_Dataset.Transformation_Method.TSNE)
 
         self._tabs = [
             self._get_tSNE_tab(),
@@ -573,6 +616,11 @@ class Gene_Expression_Dataset_Plot:
 
         self._app.layout = html.Div([
 
+            html.Link(
+                rel="stylesheet",
+                href='/static/dropdown.css'
+            ),
+
             html.Button("Clustering", id="clustering_button"),
             html.Button("Differential Expression",
                         id="differential_expression_button"),
@@ -580,6 +628,11 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="tabs", children=self._tabs, style={"marginTop": 10}),
             html.Div(id="data", children=self._data_containers)
         ])
+
+        @self._app.server.route('/static/<path:path>')
+        def static_file(path):
+            static_folder = os.path.join(os.getcwd(), 'static')
+            return send_from_directory(static_folder, path)
 
         @self._app.callback(
             dash.dependencies.Output("manage_label_dropdown", "value"),
@@ -848,10 +901,17 @@ class Gene_Expression_Dataset_Plot:
 
         @self._app.callback(
             dash.dependencies.Output("tSNE", "figure"),
-            [dash.dependencies.Input("unfiltered_cells", "children")],
+            [dash.dependencies.Input("unfiltered_cells", "children"),
+             dash.dependencies.Input("cluster_method_dropdown", "value")],
             [dash.dependencies.State("cell_color_values", "children")])
         def update_plot_from_filters(
-                unfiltered_cells, cell_color_values):
+                unfiltered_cells, cluster_method, cell_color_values):
+
+            print(cluster_method)
+            if cluster_method is not None:
+                cluster_method = \
+                    Gene_Expression_Dataset.Transformation_Method[
+                        cluster_method]
 
             if verbose:
                 print("update_plot_from_cluster_filter")
@@ -868,7 +928,7 @@ class Gene_Expression_Dataset_Plot:
             else:
                 unfiltered_cells = None
 
-            return self.get_tSNE_figure(
+            return self.get_tSNE_figure(cluster_method,
                 highlighted_cells=unfiltered_cells,
                 cell_color_values=cell_color_values)
 

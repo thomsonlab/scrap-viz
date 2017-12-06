@@ -665,6 +665,11 @@ class Gene_Expression_Dataset:
     def get_cell_transcript_counts(self):
         return self._cell_transcript_counts
 
+    def auto_cluster(self, num_clusters=20,
+                     transformation_method=Transformation_Method.PCA):
+
+        k_means = KMeans(n_clusters=num_clusters, random_state=0)
+
     def get_matched_clusters(self, label_1, label_2=None, num_clusters=20,
                              transformation_method=Transformation_Method.PCA):
 
