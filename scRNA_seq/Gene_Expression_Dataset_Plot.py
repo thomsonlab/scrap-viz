@@ -4,7 +4,6 @@ import dash_html_components as html
 import plotly.graph_objs as go
 from .Gene_Expression_Dataset import Gene_Expression_Dataset
 import plotly.figure_factory as ff
-from scRNA_seq import Gene
 import pandas
 import json
 import math
@@ -115,15 +114,16 @@ class Gene_Expression_Dataset_Plot:
 
         return new_string
 
-    @staticmethod
-    def generate_differential_gene_expression_table(data_frame):
+    def generate_differential_gene_expression_table(self, data_frame):
 
         if data_frame is None:
             return ff.create_table(pandas.DataFrame())
 
         genes = data_frame.index
 
-        gene_name_descriptions = Gene.get_gene_summaries(genes)
+        gene_name_descriptions = \
+            self._gene_expression_dataset.get_gene_summaries(genes)
+
 
         num_rows = data_frame.shape[0]
 

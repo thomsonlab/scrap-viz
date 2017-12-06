@@ -11,7 +11,14 @@ from statsmodels.sandbox.stats.multicomp import multipletests
 from sklearn.cluster import KMeans
 import numpy
 import scipy
+import json
 from sklearn import mixture
+from . import Gene
+import urllib3 as urllib
+
+Entrez_gene_summary_marker = " Entrez Gene Summary for "
+gene_summary_marker = " Summary for "
+gene_name_marker = "aliasMainName"
 
 
 class Gene_Expression_Dataset:
@@ -167,9 +174,10 @@ class Gene_Expression_Dataset:
         self._cell_transcript_counts = None
         self._gene_means = None
         self._normalized_gene_means = None
+        self._gene_cache = {}
 
         if name is None:
-            self._load_dataset_from_path(dataset_path)
+            self._load_dataset_from_path()
         else:
             self.load(name)
 
@@ -597,10 +605,6 @@ class Gene_Expression_Dataset:
             gene_counts_path
         )
 
-        self._zero_genes = self._gene_counts.apply(lambda x: x == 0)
-
-        self._gene_means = self._gene_counts.mean(axis=1)
-
         normalized_path = os.path.join(self._dataset_path,
                                        "normalized_%s.csv" % name)
 
@@ -608,8 +612,6 @@ class Gene_Expression_Dataset:
 
             self._normalized_gene_counts = \
                 Gene_Expression_Dataset.read_pandas_csv(normalized_path)
-
-            self._normalized_gene_means = self._gene_counts.mean(axis=1)
 
         for method_name, method in \
                 self.Transformation_Method.__members__.items():
@@ -625,11 +627,7 @@ class Gene_Expression_Dataset:
                 file_path
             )
 
-        self._cell_transcript_counts = Gene_Expression_Dataset.read_pandas_csv(
-            self.get_cell_transcript_counts_file_path(self._dataset_path))
-
-        self._label_cells = Gene_Expression_Dataset.get_label_cells_from_file(
-            self.get_cell_labels_file_path(self._dataset_path))
+        self._initialize_cache()
 
     def save(self, name):
 
@@ -656,6 +654,13 @@ class Gene_Expression_Dataset:
             Gene_Expression_Dataset.write_pandas_csv(
                 self._transformed[method],
                 file_path)
+
+    def _save_gene_cache(self):
+
+        gene_cache_path = os.path.join(self._dataset_path, "gene_cache.json")
+
+        with open(gene_cache_path, "w") as gene_cache_file:
+            json.dump(self._gene_cache, gene_cache_file, indent=4)
 
     def get_cell_transcript_counts(self):
         return self._cell_transcript_counts
@@ -731,22 +736,109 @@ class Gene_Expression_Dataset:
 
         return label_cells
 
-    def _load_dataset_from_path(self, dataset_path):
+    def get_gene_summaries(self, genes):
+
+        gene_name_descriptions = []
+
+        http = urllib.PoolManager()
+
+        added_gene = False
+
+        for gene in genes:
+
+            if gene in self._gene_cache and self._gene_cache[gene] != \
+                    (gene, "No response"):
+                gene_name_descriptions.append(self._gene_cache[gene])
+                continue
+
+            url = "http://www.genecards.org/cgi-bin/carddisp.pl?gene=%s" % gene
+            response = http.request("GET", url)
+
+            if response.status != 200:
+                gene_name_descriptions.append((gene, "No response"))
+                continue
+
+            added_gene = True
+
+            string = response.data.decode("UTF-8")
+
+            if string.find("was not found") != -1:
+                self._gene_cache[gene] = (gene, "Gene not found")
+                gene_name_descriptions.append(self._gene_cache[gene])
+                continue
+
+            gene_name_marker_location = string.find(gene_name_marker)
+
+            if gene_name_marker_location == -1:
+                gene_name = gene
+            else:
+                name_start_index = string.find(">", gene_name_marker_location)
+                name_end_index = string.find("<", name_start_index)
+
+                gene_name = string[name_start_index + 1:name_end_index]
+
+            Entrez_gene_summary_location = string.find(
+                Entrez_gene_summary_marker)
+
+            if Entrez_gene_summary_location == -1:
+                gene_summary_marker_location = string.find(gene_summary_marker)
+
+                if gene_summary_marker_location == -1:
+                    self._gene_cache[gene] = \
+                        (gene_name, "Gene summary not found")
+                    gene_name_descriptions.append(self._gene_cache[gene])
+                    continue
+            else:
+                gene_summary_marker_location = Entrez_gene_summary_location
+
+            summary_start_index = string.find("<p>",
+                                              gene_summary_marker_location)
+
+            summary_end_index = string.find("</p>", summary_start_index)
+
+            gene_description = string[summary_start_index + 3:summary_end_index]
+            gene_description = " ".join(gene_description.split())
+
+            self._gene_cache[gene] = (gene_name, gene_description)
+            gene_name_descriptions.append(self._gene_cache[gene])
+
+        if added_gene:
+            self._save_gene_cache()
+
+        return gene_name_descriptions
+
+    def _load_dataset_from_path(self):
 
         gene_count_file_path = os.path.join(dataset_path, "gene_counts.csv")
 
         self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_count_file_path)
 
+        self._initialize_cache()
+
+    def _initialize_cache(self):
+
         self._zero_genes = self._gene_counts.apply(lambda x: x == 0)
 
         self._gene_means = self._gene_counts.mean(axis=1)
+
+        if self._normalized_gene_counts is not None:
+
+            self._normalized_gene_means = self._normalized_gene_counts.mean(
+                axis=1
+            )
 
         self._cell_transcript_counts = Gene_Expression_Dataset.read_pandas_csv(
             self.get_cell_transcript_counts_file_path(self._dataset_path))
 
         self._label_cells = Gene_Expression_Dataset.get_label_cells_from_file(
             self.get_cell_labels_file_path(self._dataset_path))
+
+        gene_cache_path = os.path.join(self._dataset_path, "gene_cache.json")
+
+        if os.path.isfile(gene_cache_path):
+            with open(gene_cache_path, "r") as gene_cache_file:
+                self._gene_cache = json.load(gene_cache_file)
 
     def _get_cell_labels_file_path(self):
         return Gene_Expression_Dataset.get_cell_labels_file_path(
