@@ -13,7 +13,6 @@ import numpy
 import scipy
 import json
 from sklearn import mixture
-from . import Gene
 import urllib3 as urllib
 
 Entrez_gene_summary_marker = " Entrez Gene Summary for "
