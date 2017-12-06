@@ -636,9 +636,10 @@ class Gene_Expression_Dataset:
             self._gene_counts,
             os.path.join(self._dataset_path, "gene_counts_%s.csv" % name))
 
-        Gene_Expression_Dataset.write_pandas_csv(
-            self._normalized_gene_counts,
-            os.path.join(self._dataset_path, "normalized_%s.csv" % name))
+        if self._normalized_gene_counts is not None:
+            Gene_Expression_Dataset.write_pandas_csv(
+                self._normalized_gene_counts,
+                os.path.join(self._dataset_path, "normalized_%s.csv" % name))
 
         for method_name, method in \
                 self.Transformation_Method.__members__.items():
@@ -808,7 +809,8 @@ class Gene_Expression_Dataset:
 
     def _load_dataset_from_path(self):
 
-        gene_count_file_path = os.path.join(dataset_path, "gene_counts.csv")
+        gene_count_file_path = os.path.join(self._dataset_path,
+                                            "gene_counts.csv")
 
         self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_count_file_path)

@@ -1,34 +1,15 @@
 import os
 from scRNA_seq import Gene_Expression_Dataset
-from scRNA_seq import Gene_Expression_Dataset_Plot
 
-virus_H2_dataset_path = os.path.expanduser(
-    os.path.join(
-        "~", "Virus_Transcriptomics", "H2-small", "matrixdata", "H2-small_matrix.csv"
-    )
-)
 
-virus_C2_dataset_path = os.path.expanduser(
-    os.path.join(
-        "~", "Virus_Transcriptomics", "C2-small", "matrixdata", "C2-small_matrix.csv"
-    )
-)
-
-virus_dataset_path = os.path.expanduser(
+dataset_path = os.path.expanduser(
     os.path.join(
         "~", "Virus_Transcriptomics", "workspace"
     )
 )
 
-dataset = Gene_Expression_Dataset(virus_dataset_path, [virus_H2_dataset_path, virus_C2_dataset_path])
+pipeline_name = "5_1000_RPM_SD"
 
-# dataset_path = os.path.expanduser(
-#     os.path.join(
-#         "~", "Nf-1_Transcriptomics", "workspace"
-#     )
-# )
-
-print("Loading dataset...")
 gene_expression_dataset = Gene_Expression_Dataset(dataset_path)
 
 print("Filtering...")
@@ -46,9 +27,5 @@ gene_expression_dataset.transform(
 gene_expression_dataset.transform(
     Gene_Expression_Dataset.Transformation_Method.TSNE, num_dimensions=2,
     use_normalized=True)
-print("Ready to plot!")
 
-plot = Gene_Expression_Dataset_Plot(gene_expression_dataset)
-
-plot.start()
-
+gene_expression_dataset.save(pipeline_name)
