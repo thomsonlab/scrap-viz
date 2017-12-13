@@ -283,6 +283,15 @@ class Gene_Expression_Dataset:
 
         del self._label_cells[label]
 
+    def rename_label(self, old_label, new_label):
+
+        if label not in self._label_cells:
+            return
+
+        self._label_cells[new_label] = self._label_cells[old_label]
+
+        self.delete_label(old_label)
+
     def transform(self, method=Transformation_Method.PCA, num_dimensions=2,
                   use_normalized=False):
 
@@ -668,7 +677,33 @@ class Gene_Expression_Dataset:
     def auto_cluster(self, num_clusters=20,
                      transformation_method=Transformation_Method.PCA):
 
-        k_means = KMeans(n_clusters=num_clusters, random_state=0)
+        if num_clusters is None:
+            return
+
+        data_transformed = self._transformed[transformation_method]
+
+        clusterer = mixture.GaussianMixture(n_components=num_clusters)
+
+        fitted = clusterer.fit(data_transformed)
+
+        clusters = fitted.predict(data_transformed)
+
+        labels_to_delete = []
+
+        for label in self._label_cells.keys():
+            if label.find("Auto Cluster") != -1:
+                labels_to_delete.append(label)
+
+        for label in labels_to_delete:
+            self.delete_label(label)
+
+        for cluster_index in range(num_clusters):
+
+            cluster_cells = data_transformed[
+                clusters == cluster_index
+            ]
+
+            self.label_cells("Auto Cluster %i" % cluster_index, cluster_cells.index)
 
     def get_matched_clusters(self, label_1, label_2=None, num_clusters=20,
                              transformation_method=Transformation_Method.PCA):

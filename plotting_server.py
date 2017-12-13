@@ -5,11 +5,11 @@ from scRNA_seq import Gene_Expression_Dataset_Plot
 
 dataset_path = os.path.expanduser(
     os.path.join(
-        "~", "Nf-1_Transcriptomics", "workspace"
+        "~", "Virus_Transcriptomics", "workspace"
     )
 )
 
-pipeline_name = "5_2000_RPM_SD"
+pipeline_name = "5_1000_RPM_SD"
 
 print("Loading dataset...")
 gene_expression_dataset = Gene_Expression_Dataset(

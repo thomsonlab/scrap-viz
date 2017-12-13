@@ -36,6 +36,7 @@ class Gene_Expression_Dataset_Plot:
         self._n_clicks_filter_by = 0
         self._n_clicks_add_label = None
         self._n_clicks_delete_label = None
+        self._n_clicks_auto_cluster = None
         self._column_to_sort = 1
         self._regenerate_de = False
         self._de_figure = None
@@ -372,7 +373,7 @@ class Gene_Expression_Dataset_Plot:
     def _get_differential_expression_tab(self):
 
         differential_expression_tab = html.Div(
-            id="de_tab",
+            id="de_tab", className="tabcontent",
             children=[
                 html.Div(
                     id="label_dropdowns",
@@ -447,7 +448,7 @@ class Gene_Expression_Dataset_Plot:
     def _get_clustering_tab(self):
 
         clustering_tab = html.Div(
-            id="clustering_tab",
+            id="clustering_tab", className="tabcontent",
             children=[
                 html.Div(
                     id="cluster_display_options",
@@ -546,6 +547,23 @@ class Gene_Expression_Dataset_Plot:
                     }
                 ),
                 html.Div(
+                    id="auto_clustering",
+                    children=[
+                        html.Label("# Clusters:"),
+                        dcc.Input(
+                            id="num_clusters",
+                            type="text", value=""
+                        ),
+                        html.Button(
+                            "Auto cluster",
+                            id="auto_cluster_button"
+                        )
+                    ],
+                    style={
+                        "width": "25%"
+                    }
+                ),
+                html.Div(
                     id="label_management",
                     children=[
                         dcc.Dropdown(
@@ -611,6 +629,8 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="cell_color_values", children=[],
                      style={"display": "none"}),
             html.Div(id="unfiltered_cells", children=[],
+                     style={"display": "none"}),
+            html.Div(id="current_tab", children=[],
                      style={"display": "none"})
         ]
 
@@ -621,9 +641,18 @@ class Gene_Expression_Dataset_Plot:
                 href='/static/dropdown.css'
             ),
 
-            html.Button("Clustering", id="clustering_button"),
-            html.Button("Differential Expression",
-                        id="differential_expression_button"),
+            html.Link(
+                rel="stylesheet",
+                href='/static/tabs.css'
+            ),
+
+            html.Div(id="blah", className="tab", children=[
+                html.Button("Clustering", id="clustering_button",
+                            className="tablinks"),
+                html.Button("Differential Expression", className="tablinks",
+                            id="differential_expression_button")
+            ]),
+
 
             html.Div(id="tabs", children=self._tabs, style={"marginTop": 10}),
             html.Div(id="data", children=self._data_containers)
@@ -647,15 +676,20 @@ class Gene_Expression_Dataset_Plot:
         @self._app.callback(
             dash.dependencies.Output("labels", "children"),
             [dash.dependencies.Input("delete_label_button", "n_clicks"),
-             dash.dependencies.Input("add_label_button", "n_clicks")],
+             dash.dependencies.Input("add_label_button", "n_clicks"),
+             dash.dependencies.Input("auto_cluster_button", "n_clicks")],
             [dash.dependencies.State("label_name", "value"),
              dash.dependencies.State("projection", "selectedData"),
              dash.dependencies.State("manage_label_dropdown", "value"),
-             dash.dependencies.State("unfiltered_cells", "children")]
+             dash.dependencies.State("unfiltered_cells", "children"),
+             dash.dependencies.State("num_clusters", "value"),
+             dash.dependencies.State("cluster_method_dropdown", "value")]
         )
         def label_added_or_deleted(delete_label_n_clicks, add_label_n_clicks,
+                                   auto_cluster_n_clicks,
                                    label_name_to_add, selected_data,
-                                   label_to_delete, unfiltered_cells):
+                                   label_to_delete, unfiltered_cells,
+                                   num_clusters, cluster_method):
 
             if verbose:
                 print("label_added_or_deleted")
@@ -663,11 +697,27 @@ class Gene_Expression_Dataset_Plot:
             current_labels = self._gene_expression_dataset.get_labels()
 
             if (delete_label_n_clicks is None or delete_label_n_clicks == 0)\
-                    and (add_label_n_clicks is None or add_label_n_clicks == 0):
+                    and (add_label_n_clicks is None or add_label_n_clicks == 0)\
+                    and (auto_cluster_n_clicks is None or \
+                                     auto_cluster_n_clicks == 0):
                 return current_labels
 
+            # Check if auto cluster was clicked
+            if auto_cluster_n_clicks is not None and \
+                    auto_cluster_n_clicks != self._n_clicks_auto_cluster:
+
+                if cluster_method is not None:
+                    cluster_method = \
+                        Gene_Expression_Dataset.Transformation_Method[
+                            cluster_method]
+
+                num_clusters = int(num_clusters)
+                self._gene_expression_dataset.auto_cluster(
+                    num_clusters,
+                    transformation_method=cluster_method)
+                self._n_clicks_auto_cluster = auto_cluster_n_clicks
             # If n_clicks of delete button is the same, this is an add label
-            if delete_label_n_clicks == self._n_clicks_delete_label:
+            elif delete_label_n_clicks == self._n_clicks_delete_label:
                 self._n_clicks_add_label = add_label_n_clicks
 
                 if label_name_to_add == "":
@@ -698,14 +748,12 @@ class Gene_Expression_Dataset_Plot:
                 self._gene_expression_dataset.label_cells(label_name_to_add,
                                                           cells_to_label)
                 self._gene_expression_dataset.save_labels()
-
-                return self._get_label_dropdowns()
             else:
                 self._n_clicks_delete_label = delete_label_n_clicks
                 self._gene_expression_dataset.delete_label(label_to_delete)
                 self._gene_expression_dataset.save_labels()
 
-                return self._get_label_dropdowns()
+            return self._get_label_dropdowns()
 
         @self._app.callback(
             dash.dependencies.Output("manage_label_dropdown", "options"),
@@ -717,20 +765,62 @@ class Gene_Expression_Dataset_Plot:
             return self._get_label_options()
 
         @self._app.callback(
-            dash.dependencies.Output("clustering_tab", "style"),
+            dash.dependencies.Output("clustering_button", "className"),
+            [dash.dependencies.Input("current_tab", "children")])
+        def current_tab_changed_update_clustering_button(current_tab):
+
+            if verbose:
+                print("current_tab_changed_update_clustering_button")
+
+            if current_tab == "clustering":
+                return "tablinks active"
+            else:
+                return "tablinks"
+
+        @self._app.callback(
+            dash.dependencies.Output("current_tab", "children"),
             [dash.dependencies.Input("clustering_button", "n_clicks"),
              dash.dependencies.Input("differential_expression_button",
                                      "n_clicks")])
-        def tabs_clicked_update_clustering_tab(clustering_button_clicks, _):
+        def tabs_clicked_update_current_tab(
+                clustering_button_clicks,
+                differential_button_clicks):
+
+            if verbose:
+                print("tabs_clicked_update_current_tab")
+            if clustering_button_clicks is not None and \
+                    clustering_button_clicks > self._clustering_n_clicks:
+                self._clustering_n_clicks += 1
+                return "clustering"
+            elif differential_button_clicks is not None and \
+                    differential_button_clicks > \
+                    self._differential_expression_n_clicks:
+                self._differential_expression_n_clicks += 1
+                return "differential_expression"
+
+            return []
+
+        @self._app.callback(
+            dash.dependencies.Output("clustering_tab", "style"),
+            [dash.dependencies.Input("current_tab", "children")])
+        def tabs_clicked_update_clustering_tab(current_tab):
             if verbose:
                 print("tabs_clicked_update_clustering_tab")
 
-            if clustering_button_clicks is not None and \
-                    clustering_button_clicks > self._clustering_n_clicks:
-
-                self._clustering_n_clicks += 1
+            if current_tab == "clustering":
                 return {"display": "block"}
+            else:
+                return {"display": "none"}
 
+        @self._app.callback(
+            dash.dependencies.Output("de_tab", "style"),
+            [dash.dependencies.Input("current_tab", "children")])
+        def tabs_clicked_update_de_tab(current_tab):
+            if verbose:
+                print("tabs_clicked_update_de_tab")
+
+            if current_tab == "differential_expression":
+                return {"display": "block"}
             else:
                 return {"display": "none"}
 
@@ -750,24 +840,6 @@ class Gene_Expression_Dataset_Plot:
             if verbose:
                 print("label_added_clear_label_field")
             return ""
-
-        @self._app.callback(
-            dash.dependencies.Output("de_tab", "style"),
-            [dash.dependencies.Input("clustering_button", "n_clicks"),
-             dash.dependencies.Input("differential_expression_button",
-                                     "n_clicks")])
-        def tabs_clicked_update_de_tab(_, differential_expression_clicks):
-            if verbose:
-                print("tabs_clicked_update_de_tab")
-
-            if differential_expression_clicks is not None and \
-                    differential_expression_clicks > \
-                    self._differential_expression_n_clicks:
-
-                self._differential_expression_n_clicks += 1
-                return {"display": "block"}
-            else:
-                return {"display": "none"}
 
         @self._app.callback(
             dash.dependencies.Output("gene_range", "children"),
