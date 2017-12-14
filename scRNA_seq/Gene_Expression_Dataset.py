@@ -679,18 +679,22 @@ class Gene_Expression_Dataset:
         return self._cell_transcript_counts
 
     def auto_cluster(self, num_clusters=20,
-                     transformation_method=Transformation_Method.PCA):
+                     transformation_method=Transformation_Method.PCA,
+                     clustering_method=Clustering_Method.K_MEANS):
 
         if num_clusters is None:
             return
 
         data_transformed = self._transformed[transformation_method]
 
-        clusterer = mixture.GaussianMixture(n_components=num_clusters)
-
-        fitted = clusterer.fit(data_transformed)
-
-        clusters = fitted.predict(data_transformed)
+        if clustering_method == self.Clustering_Method.K_MEANS:
+            clusterer = KMeans(n_clusters=num_clusters, random_state=0)
+            fitted = clusterer.fit(data_transformed)
+            clusters = fitted.labels_
+        elif clustering_method == self.Clustering_Method.GMM:
+            clusterer = mixture.GaussianMixture(n_components=num_clusters)
+            fitted = clusterer.fit(data_transformed)
+            clusters = fitted.predict(data_transformed)
 
         labels_to_delete = []
 
@@ -710,7 +714,8 @@ class Gene_Expression_Dataset:
             self.label_cells("Auto Cluster %i" % cluster_index, cluster_cells.index)
 
     def get_matched_clusters(self, label_1, label_2=None, num_clusters=20,
-                             transformation_method=Transformation_Method.PCA):
+                             transformation_method=Transformation_Method.PCA,
+                             clustering_method=Clustering_Method.K_MEANS):
 
         label_1_cells = list(self.get_cells(label_1))
         label_2_cells = list(self.get_cells(label_2))
@@ -720,23 +725,26 @@ class Gene_Expression_Dataset:
         label_2_transformed = \
             self._transformed[transformation_method].loc[label_2_cells]
 
-        label_1_k_means = KMeans(n_clusters=num_clusters, random_state=0)
-        label_2_k_means = KMeans(n_clusters=num_clusters, random_state=0)
+        if clustering_method == self.Clustering_Method.K_MEANS:
 
-        label_1_fitted = label_1_k_means.fit(label_1_transformed)
-        label_2_fitted = label_2_k_means.fit(label_2_transformed)
+            label_1_k_means = KMeans(n_clusters=num_clusters, random_state=0)
+            label_2_k_means = KMeans(n_clusters=num_clusters, random_state=0)
 
-        label_1_cluster_centers = label_1_fitted.cluster_centers_
-        label_2_cluster_centers = label_2_fitted.cluster_centers_
+            label_1_fitted = label_1_k_means.fit(label_1_transformed)
+            label_2_fitted = label_2_k_means.fit(label_2_transformed)
 
-        # label_1_mixture = mixture.GaussianMixture(n_components=num_clusters)
-        # label_2_mixture = mixture.GaussianMixture(n_components=num_clusters)
-        #
-        # label_1_fitted = label_1_mixture.fit(label_1_transformed)
-        # label_2_fitted = label_2_mixture.fit(label_2_transformed)
-        #
-        # label_1_cluster_centers = label_1_fitted.means_
-        # label_2_cluster_centers = label_2_fitted.means_
+            label_1_cluster_centers = label_1_fitted.cluster_centers_
+            label_2_cluster_centers = label_2_fitted.cluster_centers_
+
+        elif clustering_method == self.Clustering_Method.GMM:
+            label_1_mixture = mixture.GaussianMixture(n_components=num_clusters)
+            label_2_mixture = mixture.GaussianMixture(n_components=num_clusters)
+
+            label_1_fitted = label_1_mixture.fit(label_1_transformed)
+            label_2_fitted = label_2_mixture.fit(label_2_transformed)
+
+            label_1_cluster_centers = label_1_fitted.means_
+            label_2_cluster_centers = label_2_fitted.means_
 
         cluster_distances = numpy.empty((num_clusters, num_clusters))
 
@@ -756,11 +764,12 @@ class Gene_Expression_Dataset:
 
         label_cells = {}
 
-        label_1_clusters = label_1_fitted.labels_
-        label_2_clusters = label_2_fitted.labels_
-
-        # label_1_clusters = label_1_fitted.predict(label_1_transformed)
-        # label_2_clusters = label_2_fitted.predict(label_2_transformed)
+        if clustering_method == self.Clustering_Method.K_MEANS:
+            label_1_clusters = label_1_fitted.labels_
+            label_2_clusters = label_2_fitted.labels_
+        elif clustering_method == self.Clustering_Method.GMM:
+            label_1_clusters = label_1_fitted.predict(label_1_transformed)
+            label_2_clusters = label_2_fitted.predict(label_2_transformed)
 
         for cluster_index in range(num_clusters):
             label_2_cluster_index = cluster_assignments[1][cluster_index]

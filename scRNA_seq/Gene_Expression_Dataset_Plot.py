@@ -751,13 +751,15 @@ class Gene_Expression_Dataset_Plot:
              dash.dependencies.State("manage_label_dropdown", "value"),
              dash.dependencies.State("unfiltered_cells", "children"),
              dash.dependencies.State("num_clusters", "value"),
-             dash.dependencies.State("transformation_method_dropdown", "value")]
+             dash.dependencies.State("transformation_method_dropdown", "value"),
+             dash.dependencies.State("cluster_method_dropdown", "value")]
         )
         def label_added_or_deleted(delete_label_n_clicks, add_label_n_clicks,
                                    auto_cluster_n_clicks,
                                    label_name_to_add, selected_data,
                                    label_to_delete, unfiltered_cells,
-                                   num_clusters, transformation_method):
+                                   num_clusters, transformation_method,
+                                   cluster_method):
 
             if verbose:
                 print("label_added_or_deleted")
@@ -778,11 +780,16 @@ class Gene_Expression_Dataset_Plot:
                     transformation_method = \
                         Gene_Expression_Dataset.Transformation_Method[
                             transformation_method]
+                if cluster_method is not None:
+                    cluster_method = \
+                        Gene_Expression_Dataset.Clustering_Method[
+                            cluster_method]
 
                 num_clusters = int(num_clusters)
                 self._gene_expression_dataset.auto_cluster(
                     num_clusters,
-                    transformation_method=transformation_method)
+                    transformation_method=transformation_method,
+                    clustering_method=cluster_method)
                 self._n_clicks_auto_cluster = auto_cluster_n_clicks
             # If n_clicks of delete button is the same, this is an add label
             elif delete_label_n_clicks == self._n_clicks_delete_label:
