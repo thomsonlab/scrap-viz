@@ -35,6 +35,10 @@ class Gene_Expression_Dataset:
         PCA = 0
         TSNE = 1
 
+    class Clustering_Method(Enum):
+        K_MEANS = 0
+        GMM = 1
+
     @staticmethod
     def get_sample_name(cell_name):
         return cell_name[:cell_name.find("_")]

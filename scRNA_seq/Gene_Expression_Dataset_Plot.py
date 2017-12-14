@@ -45,7 +45,7 @@ class Gene_Expression_Dataset_Plot:
                         highlighted_cells=None, cell_color_values=None):
 
         if transformation_method == None:
-            transformation_method = self._get_default_cluster_method()
+            transformation_method = self._get_default_transformation_method()
 
         gene_expression = \
             self._gene_expression_dataset.get_cell_gene_expression(
@@ -323,7 +323,7 @@ class Gene_Expression_Dataset_Plot:
         return label_options
 
     @staticmethod
-    def _get_cluster_method_options():
+    def _get_transformation_method_options():
 
         label_options = []
 
@@ -335,7 +335,7 @@ class Gene_Expression_Dataset_Plot:
         return label_options
 
     @staticmethod
-    def _get_default_cluster_method():
+    def _get_default_transformation_method():
 
         return Gene_Expression_Dataset.Transformation_Method.TSNE
 
@@ -467,9 +467,9 @@ class Gene_Expression_Dataset_Plot:
                         ),
                         html.Div(children=[
                             dcc.Dropdown(
-                                id="cluster_method_dropdown",
-                                options=self._get_cluster_method_options(),
-                                value=self._get_default_cluster_method().name
+                                id="transformation_method_dropdown",
+                                options=self._get_transformation_method_options(),
+                                value=self._get_default_transformation_method().name
                             )],
                             style={
                                 "width": "50%",
@@ -495,8 +495,9 @@ class Gene_Expression_Dataset_Plot:
                         "marginTop": 25}
                 ),
                 html.Div(
-                    id="gene_filter_management",
+                    id="gene_filter_management", className="bordered_container",
                     children=[
+                        html.H4("Gene Filter", className="container_title"),
                         html.Div(
                             id="gene_filter_dropdown_div",
                             children=[
@@ -531,25 +532,51 @@ class Gene_Expression_Dataset_Plot:
                     }
                 ),
                 html.Div(
-                    id="selection_labeling",
+                    id="label_management", className="bordered_container",
                     children=[
+                        html.H4(children="Label Management",
+                                className="container_title"),
+                        html.Div(children=[
+                            html.Label("Create label:")
+                        ]),
                         dcc.Input(
                             id="label_name",
                             type="text", value=""
                         ),
                         html.Button(
-                            "Label Selected",
+                            "+",
                             id="add_label_button"
+                        ),
+                        html.Div(children=[
+                            html.Label("Current labels:")
+                        ]),
+                        html.Div(children=[
+                            dcc.Dropdown(
+                                id="manage_label_dropdown",
+                                options=self._get_label_options(),
+                                value=[])
+                            ],
+                            style={
+                                "width": "50%",
+                                "display": "inline-block"
+                            }
+                        ),
+                        html.Div(children=[
+                            html.Button("Delete", id="delete_label_button")
+                            ]
                         )
                     ],
                     style={
-                        "width": "25%"
+                        "width": "50%",
                     }
                 ),
                 html.Div(
-                    id="auto_clustering",
+                    id="auto_clustering", className="bordered_container",
                     children=[
-                        html.Label("# Clusters:"),
+                        html.H4(children="Auto Clustering",
+                                className="container_title"),
+                        html.Div("Clustering method:"),
+                        html.Div("# Clusters:"),
                         dcc.Input(
                             id="num_clusters",
                             type="text", value=""
@@ -560,24 +587,7 @@ class Gene_Expression_Dataset_Plot:
                         )
                     ],
                     style={
-                        "width": "25%"
-                    }
-                ),
-                html.Div(
-                    id="label_management",
-                    children=[
-                        dcc.Dropdown(
-                            id="manage_label_dropdown",
-                            options=self._get_label_options(),
-                            value=[]
-                        ),
-                        html.Button("Delete", id="delete_label_button"),
-                        html.Label("", id="label_cell_count_text")
-                    ],
-                    style={
-                        "width": "25%",
-                        "marginTop": 10,
-                        "marginBottom": 10
+                        "width": "50%"
                     }
                 ),
                 html.Div(
@@ -646,6 +656,11 @@ class Gene_Expression_Dataset_Plot:
                 href='/static/tabs.css'
             ),
 
+            html.Link(
+                rel="stylesheet",
+                href='/static/containers.css'
+            ),
+
             html.Div(id="blah", className="tab", children=[
                 html.Button("Clustering", id="clustering_button",
                             className="tablinks"),
@@ -683,13 +698,13 @@ class Gene_Expression_Dataset_Plot:
              dash.dependencies.State("manage_label_dropdown", "value"),
              dash.dependencies.State("unfiltered_cells", "children"),
              dash.dependencies.State("num_clusters", "value"),
-             dash.dependencies.State("cluster_method_dropdown", "value")]
+             dash.dependencies.State("transformation_method_dropdown", "value")]
         )
         def label_added_or_deleted(delete_label_n_clicks, add_label_n_clicks,
                                    auto_cluster_n_clicks,
                                    label_name_to_add, selected_data,
                                    label_to_delete, unfiltered_cells,
-                                   num_clusters, cluster_method):
+                                   num_clusters, transformation_method):
 
             if verbose:
                 print("label_added_or_deleted")
@@ -706,15 +721,15 @@ class Gene_Expression_Dataset_Plot:
             if auto_cluster_n_clicks is not None and \
                     auto_cluster_n_clicks != self._n_clicks_auto_cluster:
 
-                if cluster_method is not None:
-                    cluster_method = \
+                if transformation_method is not None:
+                    transformation_method = \
                         Gene_Expression_Dataset.Transformation_Method[
-                            cluster_method]
+                            transformation_method]
 
                 num_clusters = int(num_clusters)
                 self._gene_expression_dataset.auto_cluster(
                     num_clusters,
-                    transformation_method=cluster_method)
+                    transformation_method=transformation_method)
                 self._n_clicks_auto_cluster = auto_cluster_n_clicks
             # If n_clicks of delete button is the same, this is an add label
             elif delete_label_n_clicks == self._n_clicks_delete_label:
@@ -776,6 +791,20 @@ class Gene_Expression_Dataset_Plot:
                 return "tablinks active"
             else:
                 return "tablinks"
+
+        @self._app.callback(
+            dash.dependencies.Output("differential_expression_button", "className"),
+            [dash.dependencies.Input("current_tab", "children")])
+        def current_tab_changed_update_clustering_button(current_tab):
+
+            if verbose:
+                print("current_tab_changed_update_clustering_button")
+
+            if current_tab == "differential_expression":
+                return "tablinks active"
+            else:
+                return "tablinks"
+
 
         @self._app.callback(
             dash.dependencies.Output("current_tab", "children"),
@@ -974,15 +1003,15 @@ class Gene_Expression_Dataset_Plot:
         @self._app.callback(
             dash.dependencies.Output("projection", "figure"),
             [dash.dependencies.Input("unfiltered_cells", "children"),
-             dash.dependencies.Input("cluster_method_dropdown", "value")],
+             dash.dependencies.Input("transformation_method_dropdown", "value")],
             [dash.dependencies.State("cell_color_values", "children")])
         def update_plot_from_filters(
-                unfiltered_cells, cluster_method, cell_color_values):
+                unfiltered_cells, transformation_method, cell_color_values):
 
-            if cluster_method is not None:
-                cluster_method = \
+            if transformation_method is not None:
+                transformation_method = \
                     Gene_Expression_Dataset.Transformation_Method[
-                        cluster_method]
+                        transformation_method]
 
             if verbose:
                 print("update_plot_from_cluster_filter")
@@ -999,7 +1028,7 @@ class Gene_Expression_Dataset_Plot:
             else:
                 unfiltered_cells = None
 
-            return self.get_projection_figure(cluster_method,
+            return self.get_projection_figure(transformation_method,
                 highlighted_cells=unfiltered_cells,
                 cell_color_values=cell_color_values)
 

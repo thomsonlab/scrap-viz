@@ -1,0 +1,15 @@
+/* Bordered container */
+.bordered_container {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    border: 1px solid #ccc;
+    padding-left: 10px;
+    padding-bottom: 10px;
+}
+
+.bordered_container h4.container_title {
+    margin-top: -1%;
+    margin-left: 2%;
+    background: white;
+    width: fit-content;
+}
