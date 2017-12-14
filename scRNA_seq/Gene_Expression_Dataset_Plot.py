@@ -41,8 +41,9 @@ class Gene_Expression_Dataset_Plot:
         self._regenerate_de = False
         self._de_figure = None
 
-    def get_projection_figure(self, transformation_method = None,
-                        highlighted_cells=None, cell_color_values=None):
+    def get_projection_figure(self, transformation_method=None,
+                        highlighted_cells=None, cell_color_values=None,
+                        x_axis_dimension=0, y_axis_dimension=1):
 
         if transformation_method == None:
             transformation_method = self._get_default_transformation_method()
@@ -59,8 +60,10 @@ class Gene_Expression_Dataset_Plot:
 
         for cell, cell_gene_expression in gene_expression.iterrows():
 
-            x_values.append(cell_gene_expression[gene_expression.columns[0]])
-            y_values.append(cell_gene_expression[gene_expression.columns[1]])
+            x_values.append(
+                cell_gene_expression[gene_expression.columns[x_axis_dimension]])
+            y_values.append(
+                cell_gene_expression[gene_expression.columns[y_axis_dimension]])
 
             if cell_color_values is not None:
                 color_value = cell_color_values[cell]
@@ -93,8 +96,8 @@ class Gene_Expression_Dataset_Plot:
                 )
                 ],
             'layout': go.Layout(
-                xaxis={'title': gene_expression.columns[0]},
-                yaxis={'title': gene_expression.columns[1]},
+                xaxis={'title': gene_expression.columns[x_axis_dimension]},
+                yaxis={'title': gene_expression.columns[y_axis_dimension]},
                 margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
                 legend={'x': 0, 'y': 1},
                 hovermode='closest',
@@ -339,6 +342,23 @@ class Gene_Expression_Dataset_Plot:
 
         return Gene_Expression_Dataset.Transformation_Method.TSNE
 
+    @staticmethod
+    def _get_cluster_method_options():
+
+        label_options = []
+
+        for method_name, method in \
+                Gene_Expression_Dataset.\
+                Clustering_Method.__members__.items():
+            label_options.append({"label": method_name, "value": method_name})
+
+        return label_options
+
+    @staticmethod
+    def _get_default_cluster_method():
+
+        return Gene_Expression_Dataset.Clustering_Method.K_MEANS
+
     def _get_gene_options(self):
 
         genes = sorted(self._gene_expression_dataset.get_genes())
@@ -472,7 +492,29 @@ class Gene_Expression_Dataset_Plot:
                                 value=self._get_default_transformation_method().name
                             )],
                             style={
-                                "width": "50%",
+                                "width": "25%",
+                                "display": "inline-block"
+                            }
+                        ),
+                        html.Div(children=[
+                            dcc.Dropdown(
+                                id="x_axis_dropdown",
+                                options=[],
+                                value=0
+                            )],
+                            style={
+                                "width": "12.5%",
+                                "display": "inline-block"
+                            }
+                        ),
+                        html.Div(children=[
+                            dcc.Dropdown(
+                                id="y_axis_dropdown",
+                                options=[],
+                                value=1
+                            )],
+                            style={
+                                "width": "12.5%",
                                 "display": "inline-block"
                             }
                         )
@@ -537,7 +579,7 @@ class Gene_Expression_Dataset_Plot:
                         html.H4(children="Label Management",
                                 className="container_title"),
                         html.Div(children=[
-                            html.Label("Create label:")
+                            html.Label("Label currently highlighed cells:")
                         ]),
                         dcc.Input(
                             id="label_name",
@@ -576,15 +618,22 @@ class Gene_Expression_Dataset_Plot:
                         html.H4(children="Auto Clustering",
                                 className="container_title"),
                         html.Div("Clustering method:"),
+                        dcc.Dropdown(
+                            id="cluster_method_dropdown",
+                            options=self._get_cluster_method_options(),
+                            value=self._get_default_cluster_method().name
+                        ),
                         html.Div("# Clusters:"),
                         dcc.Input(
                             id="num_clusters",
                             type="text", value=""
                         ),
-                        html.Button(
-                            "Auto cluster",
-                            id="auto_cluster_button"
-                        )
+                        html.Div(children=[
+                            html.Button(
+                                "Auto cluster",
+                                id="auto_cluster_button"
+                            )
+                        ])
                     ],
                     style={
                         "width": "50%"
@@ -641,6 +690,10 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="unfiltered_cells", children=[],
                      style={"display": "none"}),
             html.Div(id="current_tab", children=[],
+                     style={"display": "none"}),
+            html.Div(id="projection_dimensions", children=[],
+                     style={"display": "none"}),
+            html.Div(id="projection_values", children=[],
                      style={"display": "none"})
         ]
 
@@ -804,7 +857,6 @@ class Gene_Expression_Dataset_Plot:
                 return "tablinks active"
             else:
                 return "tablinks"
-
 
         @self._app.callback(
             dash.dependencies.Output("current_tab", "children"),
@@ -1001,12 +1053,65 @@ class Gene_Expression_Dataset_Plot:
             return json.dumps(list(unfiltered_cells))
 
         @self._app.callback(
+            dash.dependencies.Output("projection_dimensions", "children"),
+            [dash.dependencies.Input("transformation_method_dropdown", "value")]
+        )
+        def update_projection_dimensions(transformation_method):
+
+            if transformation_method is None:
+                return []
+
+            transformation_method = \
+                Gene_Expression_Dataset.Transformation_Method[
+                    transformation_method
+                ]
+
+            num_dimensions = \
+                len(self._gene_expression_dataset.get_cell_gene_expression(
+                    transformation_method).columns)\
+
+            dimension_options = [{"label": str(x+1), "value": x}
+                                 for x in range(num_dimensions)]
+
+            return json.dumps(dimension_options)
+
+        @self._app.callback(
+            dash.dependencies.Output("x_axis_dropdown", "options"),
+            [dash.dependencies.Input("projection_dimensions", "children")]
+        )
+        def update_x_axis_dropdown(projection_dimensions):
+
+            if projection_dimensions is None:
+                return []
+
+            return json.loads(projection_dimensions)
+
+        @self._app.callback(
+            dash.dependencies.Output("y_axis_dropdown", "options"),
+            [dash.dependencies.Input("projection_dimensions", "children")]
+        )
+        def update_y_axis_dropdown(projection_dimensions):
+
+            if projection_dimensions is None:
+                return []
+
+            return json.loads(projection_dimensions)
+
+        @self._app.callback(
             dash.dependencies.Output("projection", "figure"),
             [dash.dependencies.Input("unfiltered_cells", "children"),
-             dash.dependencies.Input("transformation_method_dropdown", "value")],
+             dash.dependencies.Input("transformation_method_dropdown", "value"),
+             dash.dependencies.Input("x_axis_dropdown", "value"),
+             dash.dependencies.Input("y_axis_dropdown", "value")],
             [dash.dependencies.State("cell_color_values", "children")])
         def update_plot_from_filters(
-                unfiltered_cells, transformation_method, cell_color_values):
+                unfiltered_cells, transformation_method, x_axis_dimension,
+                y_axis_dimension, cell_color_values):
+
+            if x_axis_dimension is None:
+                x_axis_dimension = 0
+            if y_axis_dimension is None:
+                y_axis_dimension = 1
 
             if transformation_method is not None:
                 transformation_method = \
@@ -1028,9 +1133,12 @@ class Gene_Expression_Dataset_Plot:
             else:
                 unfiltered_cells = None
 
-            return self.get_projection_figure(transformation_method,
+            return self.get_projection_figure(
+                transformation_method,
                 highlighted_cells=unfiltered_cells,
-                cell_color_values=cell_color_values)
+                cell_color_values=cell_color_values,
+                x_axis_dimension=x_axis_dimension,
+                y_axis_dimension=y_axis_dimension)
 
         @self._app.callback(
             dash.dependencies.Output("label_table", "children"),
