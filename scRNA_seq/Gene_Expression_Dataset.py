@@ -2,6 +2,8 @@ import pandas
 from enum import Enum
 import random
 from sklearn.decomposition import PCA
+from sklearn.decomposition import NMF
+from sklearn.decomposition import TruncatedSVD
 from sklearn.manifold import TSNE
 import os
 import math
@@ -14,6 +16,7 @@ import scipy
 import json
 from sklearn import mixture
 import urllib3 as urllib
+import operator
 
 Entrez_gene_summary_marker = " Entrez Gene Summary for "
 gene_summary_marker = " Summary for "
@@ -34,10 +37,13 @@ class Gene_Expression_Dataset:
     class Transformation_Method(Enum):
         PCA = 0
         TSNE = 1
+        NMF = 2
+        SVD = 3
 
     class Clustering_Method(Enum):
         K_MEANS = 0
         GMM = 1
+        MAX_FEATURE = 2
 
     @staticmethod
     def get_sample_name(cell_name):
@@ -172,6 +178,8 @@ class Gene_Expression_Dataset:
         self._zero_genes = None
         self._normalized_gene_counts = None
         self._pca = None
+        self._NMF_model = None
+        self._SVD_model = None
         self._transformed = {}
         self._label_cells = {}
         self._cell_transcript_counts = None
@@ -327,6 +335,39 @@ class Gene_Expression_Dataset:
 
             self._transformed[self.Transformation_Method.TSNE].columns = \
                 ["tSNE_%i" % i for i in range(1, num_dimensions + 1)]
+        elif method == self.Transformation_Method.NMF:
+
+            self._NMF_model = NMF(
+                n_components=num_dimensions, solver="mu", init="random",
+                beta_loss="kullback-leibler", max_iter=500, alpha=0.1,
+                l1_ratio=0.5)
+
+            if use_normalized:
+                transformed = self._NMF_model.fit_transform(
+                    self._normalized_gene_counts.transpose())
+            else:
+                transformed = self._NMF_model.fit_transform(
+                    self._gene_counts.transpose())
+
+            self._transformed[method] = pandas.DataFrame(transformed)
+
+            self._transformed[method].columns = \
+                ["NMF_%i" % i for i in range(1, num_dimensions + 1)]
+        elif method == self.Transformation_Method.SVD:
+
+            self._SVD_model = TruncatedSVD(n_components=num_dimensions)
+
+            if use_normalized:
+                transformed = self._SVD_model.fit_transform(
+                    self._normalized_gene_counts.transpose())
+            else:
+                transformed = self._SVD_model.fit_transform(
+                    self._gene_counts.transpose())
+
+            self._transformed[method] = pandas.DataFrame(transformed)
+
+            self._transformed[method].columns = \
+                ["NMF_%i" % i for i in range(1, num_dimensions + 1)]
 
         if use_normalized:
             self._transformed[method].index = \
@@ -695,6 +736,18 @@ class Gene_Expression_Dataset:
             clusterer = mixture.GaussianMixture(n_components=num_clusters)
             fitted = clusterer.fit(data_transformed)
             clusters = fitted.predict(data_transformed)
+        elif clustering_method == self.Clustering_Method.MAX_FEATURE:
+            data_transformed = pandas.DataFrame(data_transformed)
+
+            num_columns = len(data_transformed.columns)
+            columns = data_transformed.columns[0:min(num_clusters, num_columns)]
+            data_transformed = data_transformed[columns]
+
+            clusters = data_transformed.idxmax(axis=1)
+
+            for cluster_index, cluster in enumerate(clusters):
+                clusters[cluster_index] = \
+                    data_transformed.columns.get_loc(cluster)
 
         labels_to_delete = []
 

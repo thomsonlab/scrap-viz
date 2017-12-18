@@ -25,6 +25,12 @@ gene_expression_dataset.transform(
     Gene_Expression_Dataset.Transformation_Method.PCA, num_dimensions=30,
     use_normalized=True)
 gene_expression_dataset.transform(
+    Gene_Expression_Dataset.Transformation_Method.NMF, num_dimensions=30,
+    use_normalized=True)
+gene_expression_dataset.transform(
+    Gene_Expression_Dataset.Transformation_Method.SVD, num_dimensions=30,
+    use_normalized=True)
+gene_expression_dataset.transform(
     Gene_Expression_Dataset.Transformation_Method.TSNE, num_dimensions=2,
     use_normalized=True)
 
