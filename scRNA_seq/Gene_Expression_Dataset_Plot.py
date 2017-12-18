@@ -784,6 +784,10 @@ class Gene_Expression_Dataset_Plot:
                             html.Button(
                                 "Auto cluster",
                                 id="auto_cluster_button"
+                            ),
+                            html.Button(
+                                "Show Auto Clusters",
+                                id="show_auto_clusters_button"
                             )
                         ])
                     ],
@@ -1500,6 +1504,51 @@ class Gene_Expression_Dataset_Plot:
                 return []
 
             return self._get_gene_eCDF(click_data["points"][0]["y"] - 1)
+
+        @self._app.callback(
+            dash.dependencies.Output("cluster_filter_dropdown", "value"),
+            [dash.dependencies.Input("show_auto_clusters_button", "n_clicks")],
+            [dash.dependencies.State("cluster_filter_dropdown", "options")]
+        )
+        def show_auto_clusters_button_clicked(n_clicks, cluster_filter_options):
+
+            if n_clicks is None:
+                return []
+
+            auto_cluster_names = []
+
+            for label_name in cluster_filter_options:
+                if label_name["value"].find("Auto Cluster ") != -1:
+                    auto_cluster_names.append(label_name["value"])
+
+            return auto_cluster_names
+
+        @self._app.callback(
+            dash.dependencies.Output("union_checklist", "values"),
+            [dash.dependencies.Input("show_auto_clusters_button", "n_clicks")],
+            [dash.dependencies.State("union_checklist", "values")]
+        )
+        def show_auto_clusters_button_clicked_force_union(
+                n_clicks, union_checklist):
+
+            if n_clicks is None:
+                return union_checklist
+
+            return ["union"]
+
+        @self._app.callback(
+            dash.dependencies.Output("color_by_gene_count_checklist", "values"),
+            [dash.dependencies.Input("show_auto_clusters_button", "n_clicks")],
+            [dash.dependencies.State("color_by_gene_count_checklist", "values")]
+        )
+        def show_auto_clusters_button_clicked_force_cluster_coloring(
+                n_clicks,
+                color_by_gene_count_checklist):
+
+            if n_clicks is None:
+                return color_by_gene_count_checklist
+
+            return []
 
         @self._app.callback(
             dash.dependencies.Output("cluster_filter_dropdown", "options"),
