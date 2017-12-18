@@ -9,8 +9,7 @@ import json
 import math
 import os
 from flask import send_from_directory
-import colorlover
-import random
+from matplotlib import pyplot
 
 verbose = False
 
@@ -133,14 +132,13 @@ class Gene_Expression_Dataset_Plot:
             hover_text = {}
             self._cells = []
 
-            # colors = colorlover.to_rgb(
-            #     colorlover.scales[str(len(highlighted_cells))]['div']['RdYlBu'])
+            colors = self.get_colors(len(highlighted_cells))
 
             if highlighted_cells is not None:
-                for label_index, label in enumerate(highlighted_cells):
+                for label_index, label in enumerate(sorted(highlighted_cells)):
                     x_values[label] = []
                     y_values[label] = []
-                    label_colors[label] = "rgb(%i, %i, %i)" % (int(random.random()*255), int(random.random()*255), int(random.random()*255))
+                    label_colors[label] = colors[label_index]
                     hover_text[label] = []
             else:
                 highlighted_cells = {}
@@ -229,6 +227,27 @@ class Gene_Expression_Dataset_Plot:
         new_string += string[last_line_break_index:]
 
         return new_string
+
+    @staticmethod
+    def get_colors(num_colors):
+
+        color_map = pyplot.get_cmap("viridis")
+
+        num_possible_colors = len(color_map.colors)
+
+        spacing = math.floor(num_possible_colors/num_colors)
+
+        colors = []
+
+        for i in range(num_colors):
+
+            color = list(color_map.colors[spacing*i])
+            for channel_index, channel_value in enumerate(color):
+                color[channel_index] = int(channel_value * 255)
+
+            colors.append("rgb(%i, %i, %i)" % (color[0], color[1], color[2]))
+
+        return colors
 
     def generate_differential_gene_expression_table(self, data_frame):
 
@@ -1187,7 +1206,7 @@ class Gene_Expression_Dataset_Plot:
 
                 if selected_clusters is None:
                     cells_by_cluster['All Cells'] = \
-                        self._gene_expression_dataset.get_cells
+                        list(self._gene_expression_dataset.get_cells())
                     selected_clusters = []
 
                 for label in selected_clusters:
