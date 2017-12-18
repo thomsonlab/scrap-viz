@@ -349,7 +349,7 @@ class Gene_Expression_Dataset:
 
         return self._gene_counts.shape[1]
 
-    def get_cells(self, labels=None):
+    def get_cells(self, labels=None, union=False):
 
         if labels is None:
             return self._gene_counts.columns
@@ -357,12 +357,20 @@ class Gene_Expression_Dataset:
             if isinstance(labels, str):
                 return self._label_cells[labels].intersection(
                     self._gene_counts.columns)
-            else:
+            elif not union:
                 cells = self._gene_counts.columns
 
                 for label in labels:
                     cells = cells.intersection(self._label_cells[label])
 
+                return cells
+            else:
+                cells = set()
+                for label in labels:
+                    label_cells = self._gene_counts.columns
+                    label_cells = label_cells.intersection(self._label_cells[label])
+
+                    cells = cells.union(label_cells)
                 return cells
 
     def get_genes(self):
@@ -549,16 +557,17 @@ class Gene_Expression_Dataset:
 
         return self._gene_counts.loc[gene][cells]
 
-    def get_label_counts(self, filter_labels=None):
+    def get_label_counts(self, filter_labels=None, union=False):
 
         label_counts = {}
 
-        cells = self.get_cells(filter_labels)
+        cells = self.get_cells(filter_labels, union=union)
 
         total_cells = len(cells)
 
         if total_cells == 0:
-            return pandas.DataFrame()
+            empty = pandas.DataFrame(columns=["# Cells", "Ratio"])
+            return empty
 
         for label in self._label_cells.keys():
 

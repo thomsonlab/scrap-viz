@@ -66,8 +66,12 @@ class Gene_Expression_Dataset_Plot:
             self._cells = []
 
             if highlighted_cells is not None:
-                highlighted_cells = highlighted_cells[
+
+                all_highlighted_cells = highlighted_cells[
                     sorted(highlighted_cells.keys())[0]]
+                for i in range(1, len(highlighted_cells)):
+                    all_highlighted_cells.extend(
+                        highlighted_cells[sorted(highlighted_cells.keys())[i]])
 
             for cell, cell_gene_expression in gene_expression.iterrows():
 
@@ -83,7 +87,8 @@ class Gene_Expression_Dataset_Plot:
                 else:
                     color_value = "rgb(0, 0, 255)"
 
-                if highlighted_cells is not None and cell in highlighted_cells:
+                if highlighted_cells is not None and \
+                        cell in all_highlighted_cells:
                     colors.append(color_value)
                 else:
                     colors.append("rgba(150, 150, 150, 0.25")
@@ -1179,6 +1184,12 @@ class Gene_Expression_Dataset_Plot:
             if union:
 
                 cells_by_cluster = {}
+
+                if selected_clusters is None:
+                    cells_by_cluster['All Cells'] = \
+                        self._gene_expression_dataset.get_cells
+                    selected_clusters = []
+
                 for label in selected_clusters:
                     cells_in_cluster = \
                         self._gene_expression_dataset.get_cells(label)
@@ -1316,14 +1327,18 @@ class Gene_Expression_Dataset_Plot:
         @self._app.callback(
             dash.dependencies.Output("label_table", "children"),
             [dash.dependencies.Input("cluster_filter_dropdown", "value"),
-             dash.dependencies.Input("labels", "children")])
-        def cluster_filter_updated(cluster_filter_values, clusters):
+             dash.dependencies.Input("labels", "children"),
+             dash.dependencies.Input("union_checklist", "values")])
+        def cluster_filter_updated(cluster_filter_values, clusters,
+                                   union_checklist):
 
             if verbose:
                 print("cluster_filter_updated")
 
+            union = union_checklist is not None and "union" in union_checklist
+
             label_counts = self._gene_expression_dataset.get_label_counts(
-                cluster_filter_values)
+                cluster_filter_values, union=union)
 
             return self.generate_label_counts_table(label_counts)
 
