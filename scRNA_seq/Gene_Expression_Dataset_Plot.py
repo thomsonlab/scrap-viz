@@ -783,6 +783,33 @@ class Gene_Expression_Dataset_Plot:
                             id="num_clusters",
                             type="text", value=""
                         ),
+                        html.Div("Separate clusters by:"),
+                        html.Div(
+                            children=[
+                                dcc.Dropdown(
+                                    id="label_1_auto_cluster_dropdown",
+                                    options=self._get_label_options(),
+                                    value=[]
+                                )
+                            ],
+                            style={
+                                "width": "50%",
+                                "display": "inline-block"
+                            }
+                        ),
+                        html.Div(
+                            children=[
+                                dcc.Dropdown(
+                                    id="label_2_auto_cluster_dropdown",
+                                    options=self._get_label_options(),
+                                    value=[]
+                                )
+                            ],
+                            style={
+                                "width": "50%",
+                                "display": "inline-block"
+                            }
+                        ),
                         html.Div(children=[
                             html.Button(
                                 "Auto cluster",
@@ -913,14 +940,18 @@ class Gene_Expression_Dataset_Plot:
              dash.dependencies.State("unfiltered_cells", "children"),
              dash.dependencies.State("num_clusters", "value"),
              dash.dependencies.State("transformation_method_dropdown", "value"),
-             dash.dependencies.State("cluster_method_dropdown", "value")]
+             dash.dependencies.State("cluster_method_dropdown", "value"),
+             dash.dependencies.State("label_1_auto_cluster_dropdown", "value"),
+             dash.dependencies.State("label_2_auto_cluster_dropdown", "value")]
         )
         def label_added_or_deleted(delete_label_n_clicks, add_label_n_clicks,
                                    auto_cluster_n_clicks,
                                    label_name_to_add, selected_data,
                                    label_to_delete, unfiltered_cells,
                                    num_clusters, transformation_method,
-                                   cluster_method):
+                                   cluster_method,
+                                   label_1_auto_cluster_dropdown,
+                                   label_2_auto_cluster_dropdown):
 
             if verbose:
                 print("label_added_or_deleted")
@@ -947,10 +978,24 @@ class Gene_Expression_Dataset_Plot:
                             cluster_method]
 
                 num_clusters = int(num_clusters)
-                self._gene_expression_dataset.auto_cluster(
-                    num_clusters,
-                    transformation_method=transformation_method,
-                    clustering_method=cluster_method)
+
+                if (label_1_auto_cluster_dropdown != [] or \
+                        label_2_auto_cluster_dropdown != []) and \
+                        cluster_method != \
+                        Gene_Expression_Dataset.Clustering_Method.MAX_FEATURE:
+
+                    self._gene_expression_dataset.get_matched_clusters(
+                        label_1=label_1_auto_cluster_dropdown,
+                        label_2=label_2_auto_cluster_dropdown,
+                        num_clusters=num_clusters,
+                        transformation_method=transformation_method,
+                        clustering_method=cluster_method
+                    )
+                else:
+                    self._gene_expression_dataset.auto_cluster(
+                        num_clusters,
+                        transformation_method=transformation_method,
+                        clustering_method=cluster_method)
                 self._gene_expression_dataset.save_labels()
                 self._n_clicks_auto_cluster = auto_cluster_n_clicks
             # If n_clicks of delete button is the same, this is an add label
@@ -1558,6 +1603,22 @@ class Gene_Expression_Dataset_Plot:
             dash.dependencies.Output("cluster_filter_dropdown", "options"),
             [dash.dependencies.Input("labels", "children")])
         def data_edited(labels):
+            if verbose:
+                print("data_edited")
+            return self._get_label_options()
+
+        @self._app.callback(
+            dash.dependencies.Output("label_1_auto_cluster_dropdown", "options"),
+            [dash.dependencies.Input("labels", "children")])
+        def labels_changed_update_label_1_dropdown(labels):
+            if verbose:
+                print("data_edited")
+            return self._get_label_options()
+
+        @self._app.callback(
+            dash.dependencies.Output("label_2_auto_cluster_dropdown", "options"),
+            [dash.dependencies.Input("labels", "children")])
+        def labels_changed_update_label_2_dropdown(labels):
             if verbose:
                 print("data_edited")
             return self._get_label_options()

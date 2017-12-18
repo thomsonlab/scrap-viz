@@ -801,6 +801,15 @@ class Gene_Expression_Dataset:
 
         cluster_distances = numpy.empty((num_clusters, num_clusters))
 
+        labels_to_delete = []
+
+        for label in self._label_cells.keys():
+            if label.find("Auto Cluster") != -1:
+                labels_to_delete.append(label)
+
+        for label in labels_to_delete:
+            self.delete_label(label)
+
         for label_1_cluster_index in range(num_clusters):
             label_1_cluster_center = \
                 label_1_cluster_centers[label_1_cluster_index]
@@ -814,8 +823,6 @@ class Gene_Expression_Dataset:
 
         cluster_assignments = scipy.optimize.linear_sum_assignment(
             cluster_distances)
-
-        label_cells = {}
 
         if clustering_method == self.Clustering_Method.K_MEANS:
             label_1_clusters = label_1_fitted.labels_
@@ -838,9 +845,8 @@ class Gene_Expression_Dataset:
             cluster_cells = list(label_1_cluster_cells.index)
             cluster_cells.extend(list(label_2_cluster_cells.index))
 
-            label_cells["Cluster %i" % cluster_index] = cluster_cells
-
-        return label_cells
+            self.label_cells("Auto Cluster %i" % cluster_index,
+                             cluster_cells)
 
     def get_gene_summaries(self, genes):
 
