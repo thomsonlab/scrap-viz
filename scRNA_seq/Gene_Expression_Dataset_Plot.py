@@ -25,7 +25,6 @@ class Gene_Expression_Dataset_Plot:
         self._data_containers = []
         self._cells = []
         self._de_stats = None
-        self._de_stats_normalized = None
         self._differential_expression_n_clicks = 0
         self._clustering_n_clicks = 0
         self._de_start_range = 0
@@ -276,7 +275,12 @@ class Gene_Expression_Dataset_Plot:
 
             hover_texts.append([hover_text] + [""] * num_columns)
 
-        data_frame = data_frame.apply(lambda x: x.apply(lambda y: "%.3e" % y))
+        for column in data_frame.columns:
+            if column == "Cluster":
+                continue
+
+            data_frame[column] = data_frame[column].apply(
+                lambda x: "%.3e" % x)
 
         return ff.create_table(
             data_frame, index=True, index_title="Gene", hoverinfo="text",
@@ -388,14 +392,14 @@ class Gene_Expression_Dataset_Plot:
 
     def _get_de_plot(self):
 
-        if self._de_stats_normalized is None:
+        if self._de_stats is None:
             return {}
 
         x_values = []
         y_values = []
         gene_names = []
 
-        for gene, gene_stats in self._de_stats_normalized.iterrows():
+        for gene, gene_stats in self._de_stats.iterrows():
             x_values.append(gene_stats["Group 1 Mean"])
             y_values.append(gene_stats["Group 2 Mean"])
             gene_names.append(gene)
@@ -510,6 +514,13 @@ class Gene_Expression_Dataset_Plot:
                 options=label_options,
                 value=[],
                 multi=True
+            ),
+            html.Label("Differential Across"),
+            dcc.Dropdown(
+                id="de_across_dropdown",
+                options=label_options,
+                value=[],
+                multi=True
             )
         ]
 
@@ -524,11 +535,27 @@ class Gene_Expression_Dataset_Plot:
                     id="label_dropdowns",
                     children=self._get_label_dropdowns(),
                     style={'width': "50%"}),
-                html.Div(id="navigation_pane", children=[
-                    html.Button("Go!", id="de_button"),
-                    html.Button("Previous", id="de_previous_button"),
-                    html.Button("Next", id="de_next_button")
-                    ]
+                dcc.Checklist(
+                    id="use_normalized_checklist",
+                    options=[
+                        {
+                            'label': 'Use Normalized',
+                            'value': 'use_normalized'
+                        }
+                    ],
+                    values=['use_normalized']
+                ),
+                html.Div(
+                    id="navigation_pane",
+                    children=[
+                        html.Button("Go!", id="de_button"),
+                        html.Button("Previous", id="de_previous_button"),
+                        html.Button("Next", id="de_next_button")
+                    ],
+                    style={
+                        "marginTop": "1%",
+                        "marginBottom": "1%"
+                    }
                 ),
                 html.Div(id="de_pane", children=[
                     html.Div(
@@ -1023,9 +1050,15 @@ class Gene_Expression_Dataset_Plot:
                     selected_cells = self._cells
 
                 selected_cells = set(selected_cells)
-                unfiltered_cells = set(unfiltered_cells)
 
-                cells_to_label = selected_cells.intersection(unfiltered_cells)
+                if unfiltered_cells is not None:
+                    cells_to_label = set()
+                    for label in unfiltered_cells:
+                        cells_to_label = \
+                            cells_to_label.union(set(unfiltered_cells[label]))
+                    cells_to_label = cells_to_label.intersection(selected_cells)
+                else:
+                    cells_to_label = selected_cells
 
                 self._gene_expression_dataset.label_cells(label_name_to_add,
                                                           cells_to_label)
@@ -1426,12 +1459,17 @@ class Gene_Expression_Dataset_Plot:
             dash.dependencies.Output("de_data", "children"),
             [dash.dependencies.Input("de_button", "n_clicks")],
             [dash.dependencies.State("subgroup_1_dropdown", "value"),
-             dash.dependencies.State("subgroup_2_dropdown", "value")])
-        def new_de_clicked(n_clicks_de, subgroup_1_labels, subgroup_2_labels):
+             dash.dependencies.State("subgroup_2_dropdown", "value"),
+             dash.dependencies.State("de_across_dropdown", "value"),
+             dash.dependencies.State("use_normalized_checklist", "values")])
+        def new_de_clicked(n_clicks_de, subgroup_1_labels, subgroup_2_labels,
+                           de_across_dropdown, use_normalized_checklist):
             if verbose:
                 print("new_de_clicked")
 
             de_data = {"ready": False}
+
+            use_normalized = "use_normalized" in use_normalized_checklist
 
             if n_clicks_de is None or n_clicks_de == 0:
                 print("Setting de_data to:")
@@ -1453,11 +1491,8 @@ class Gene_Expression_Dataset_Plot:
                     self._de_stats = \
                         self._gene_expression_dataset.compare_gene_expression(
                             subgroup_1_labels, subgroup_2_labels,
-                            use_normalized=False)
-                    self._de_stats_normalized = \
-                        self._gene_expression_dataset.compare_gene_expression(
-                            subgroup_1_labels, subgroup_2_labels,
-                            use_normalized=True)
+                            differential_clusters=de_across_dropdown,
+                            use_normalized=use_normalized)
                     self._de_stats["Log2 Change Abs"] = \
                         abs(self._de_stats["Log2 Change"])
                     self._de_stats = self._de_stats.sort_values(

@@ -484,12 +484,11 @@ class Gene_Expression_Dataset:
         return cells_gene_differential
 
     def compare_gene_expression(self, label_1, label_2=None,
+                                differential_clusters=None,
                                 use_normalized=True):
 
         if use_normalized and self._normalized_gene_counts is None:
             use_normalized = False
-
-        gene_value_scores = {}
 
         label_1_cells = self.get_cells(label_1)
 
@@ -499,12 +498,64 @@ class Gene_Expression_Dataset:
             label_2_cells =\
                 set(self._gene_counts.columns).difference(label_1_cells)
 
+        if differential_clusters is None or len(differential_clusters) == 0:
+            gene_value_scores = self.get_gene_value_scores(
+                label_1_cells, label_2_cells, use_normalized)
+
+            gene_DE = pandas.DataFrame.from_dict(
+                gene_value_scores, orient="index")
+
+            gene_DE.columns = ["Log2 Change", "p-value", "Group 1 Mean",
+                "Group 1 SD", "Group 2 Mean", "Group 2 SD"]
+        else:
+
+            gene_DE = pandas.DataFrame(
+                columns=["Cluster", "Log2 Change", "p-value", "Group 1 Mean",
+                    "Group 1 SD", "Group 2 Mean", "Group 2 SD"])
+
+            for cluster in differential_clusters:
+                label_1_cluster_cells = \
+                    label_1_cells.intersection(self.get_cells(cluster))
+                label_2_cluster_cells = \
+                    label_2_cells.intersection(self.get_cells(cluster))
+
+                if len(label_1_cluster_cells) == 0 or \
+                        len(label_2_cluster_cells) == 0:
+                    continue
+
+                cluster_gene_value_scores = self.get_gene_value_scores(
+                    label_1_cluster_cells, label_2_cluster_cells,
+                    use_normalized)
+
+                cluster_gene_DE = pandas.DataFrame.from_dict(
+                    cluster_gene_value_scores, orient="index")
+
+                cluster_gene_DE.columns = \
+                    ["Log2 Change", "p-value", "Group 1 Mean",
+                    "Group 1 SD", "Group 2 Mean", "Group 2 SD"]
+
+                cluster_gene_DE["Cluster"] = cluster
+
+                gene_DE = gene_DE.append(cluster_gene_DE)
+
+        p_values = gene_DE["p-value"]
+
+        _, p_values, _, _ = multipletests(p_values, method="bonferroni")
+
+        gene_DE["p-value"] = p_values
+
+        return gene_DE
+
+    def get_gene_value_scores(self, cells_1, cells_2, use_normalized):
+
+        gene_value_scores = {}
+
         if use_normalized:
             cell_gene_counts = self._normalized_gene_counts.copy()
         else:
             cell_gene_counts = self._gene_counts.copy()
 
-        all_cells = label_1_cells.union(label_2_cells)
+        all_cells = cells_1.union(cells_2)
         zero_genes = self._zero_genes[list(all_cells)]
         genes_to_remove = set()
 
@@ -523,8 +574,8 @@ class Gene_Expression_Dataset:
 
         for gene, gene_counts in cell_gene_counts.iterrows():
 
-            sample_1_values = gene_counts[label_1_cells]
-            sample_2_values = gene_counts[label_2_cells]
+            sample_1_values = gene_counts[cells_1]
+            sample_2_values = gene_counts[cells_2]
 
             sample_1_mean = sample_1_values.mean()
             sample_1_SD = sample_1_values.std()
@@ -549,18 +600,7 @@ class Gene_Expression_Dataset:
                                        sample_1_mean, sample_1_SD,
                                        sample_2_mean, sample_2_SD)
 
-        df = pandas.DataFrame.from_dict(gene_value_scores, orient="index")
-
-        df.columns = ["Log2 Change", "p-value", "Group 1 Mean",
-                      "Group 1 SD", "Group 2 Mean", "Group 2 SD"]
-
-        p_values = df["p-value"]
-
-        _, p_values, _, _ = multipletests(p_values, method="bonferroni")
-
-        df["p-value"] = p_values
-
-        return df
+        return gene_value_scores
 
     def get_gene_expression_for_cell(self, cell):
 
