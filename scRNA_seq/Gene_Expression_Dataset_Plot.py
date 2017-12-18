@@ -9,8 +9,10 @@ import json
 import math
 import os
 from flask import send_from_directory
+import colorlover
+import random
 
-verbose = True
+verbose = False
 
 
 class Gene_Expression_Dataset_Plot:
@@ -41,69 +43,168 @@ class Gene_Expression_Dataset_Plot:
         self._regenerate_de = False
         self._de_figure = None
 
-    def get_projection_figure(self, transformation_method=None,
-                        highlighted_cells=None, cell_color_values=None,
-                        x_axis_dimension=0, y_axis_dimension=1):
+    def get_projection_figure(
+            self, transformation_method=None,
+            highlighted_cells=None, cell_color_values=None,
+            color_by_gene_count=True,
+            x_axis_dimension=0, y_axis_dimension=1):
 
-        if transformation_method == None:
+        if transformation_method is None:
             transformation_method = self._get_default_transformation_method()
 
         gene_expression = \
             self._gene_expression_dataset.get_cell_gene_expression(
                 transformation_method)
 
-        x_values = []
-        y_values = []
-        colors = []
-        hover_text = []
-        self._cells = []
+        if highlighted_cells is None or len(highlighted_cells) == 1 or \
+                color_by_gene_count is True:
 
-        for cell, cell_gene_expression in gene_expression.iterrows():
+            x_values = []
+            y_values = []
+            colors = []
+            hover_text = []
+            self._cells = []
 
-            x_values.append(
-                cell_gene_expression[gene_expression.columns[x_axis_dimension]])
-            y_values.append(
-                cell_gene_expression[gene_expression.columns[y_axis_dimension]])
+            if highlighted_cells is not None:
+                highlighted_cells = highlighted_cells[
+                    sorted(highlighted_cells.keys())[0]]
 
-            if cell_color_values is not None:
-                color_value = cell_color_values[cell]
+            for cell, cell_gene_expression in gene_expression.iterrows():
+
+                x_values.append(
+                    cell_gene_expression[
+                        gene_expression.columns[x_axis_dimension]])
+                y_values.append(
+                    cell_gene_expression[
+                        gene_expression.columns[y_axis_dimension]])
+
+                if cell_color_values is not None:
+                    color_value = cell_color_values[cell]
+                else:
+                    color_value = "rgb(0, 0, 255)"
+
+                if highlighted_cells is not None and cell in highlighted_cells:
+                    colors.append(color_value)
+                else:
+                    colors.append("rgba(150, 150, 150, 0.25")
+                hover_text.append(
+                    "%s<BR>%s" % (cell, color_value))
+
+                self._cells.append(cell)
+
+                figure = {
+                    'data': [
+                        go.Scatter(
+                            x=x_values,
+                            y=y_values,
+                            mode='markers',
+                            opacity=0.7,
+                            marker={
+                                'size': 5,
+                                # 'line': {'width': 0.5, 'color': 'white'},
+                                'color': colors,
+                                'colorscale': 'Viridis',
+                                'showscale': True
+                            },
+                            text=hover_text,
+                            hoverinfo="text"
+                        )],
+                    'layout': go.Layout(
+                        xaxis={
+                            'title': gene_expression.columns[x_axis_dimension]},
+                        yaxis={
+                            'title': gene_expression.columns[y_axis_dimension]},
+                        margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                        legend={'x': 0, 'y': 1},
+                        hovermode='closest',
+                        showlegend=False
+                    )
+                }
+
+        else:
+            x_values = {}
+            y_values = {}
+            label_colors = {}
+            hover_text = {}
+            self._cells = []
+
+            # colors = colorlover.to_rgb(
+            #     colorlover.scales[str(len(highlighted_cells))]['div']['RdYlBu'])
+
+            if highlighted_cells is not None:
+                for label_index, label in enumerate(highlighted_cells):
+                    x_values[label] = []
+                    y_values[label] = []
+                    label_colors[label] = "rgb(%i, %i, %i)" % (int(random.random()*255), int(random.random()*255), int(random.random()*255))
+                    hover_text[label] = []
             else:
-                color_value = "rgb(0, 0, 255)"
+                highlighted_cells = {}
 
-            if highlighted_cells is not None and cell in highlighted_cells:
-                colors.append(color_value)
-            else:
-                colors.append("rgba(150, 150, 150, 0.25")
-            hover_text.append("%s<BR>%s" % (cell, color_value))
-            self._cells.append(cell)
+            x_values['Other'] = []
+            y_values['Other'] = []
+            label_colors['Other'] = "rgba(150, 150, 150, 0.25)"
+            hover_text['Other'] = []
 
-        figure = {
-            'data': [
-                go.Scatter(
-                    x=x_values,
-                    y=y_values,
-                    mode='markers',
-                    opacity=0.7,
-                    marker={
-                        'size': 5,
-                        # 'line': {'width': 0.5, 'color': 'white'},
-                        'color': colors,
-                        'colorscale': 'Viridis',
-                        'showscale': True
-                    },
-                    text=hover_text,
-                    hoverinfo="text"
+            for cell, cell_gene_expression in gene_expression.iterrows():
+
+                cell_label = 'Other'
+
+                for label in highlighted_cells:
+                    if cell in highlighted_cells[label]:
+                        cell_label = label
+                        x_values[label].append(
+                            cell_gene_expression[gene_expression.columns[x_axis_dimension]])
+                        y_values[label].append(
+                            cell_gene_expression[gene_expression.columns[y_axis_dimension]])
+
+                        if cell_color_values is not None:
+                            color_value = cell_color_values[cell]
+                        else:
+                            color_value = "rgb(0, 0, 255)"
+
+                        hover_text[label].append("%s<BR>%s" % (cell, color_value))
+
+                if cell_label == 'Other':
+                    x_values[cell_label].append(
+                        cell_gene_expression[
+                            gene_expression.columns[x_axis_dimension]])
+                    y_values[cell_label].append(
+                        cell_gene_expression[
+                            gene_expression.columns[y_axis_dimension]])
+
+                    if cell_color_values is not None:
+                        color_value = cell_color_values[cell]
+                    else:
+                        color_value = "rgb(0, 0, 255)"
+
+                    hover_text[cell_label].append("%s<BR>%s" % (cell, color_value))
+
+                self._cells.append(cell)
+
+            figure = {
+                'data': [
+                    go.Scatter(
+                        x=x_values[label],
+                        y=y_values[label],
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 5,
+                            'color': label_colors[label]
+                        },
+                        text=hover_text[label],
+                        hoverinfo="text",
+                        name=label
+                    ) for label in x_values],
+                'layout': go.Layout(
+                    xaxis={'title': gene_expression.columns[x_axis_dimension]},
+                    yaxis={'title': gene_expression.columns[y_axis_dimension]},
+                    margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest',
+                    showlegend=True
                 )
-                ],
-            'layout': go.Layout(
-                xaxis={'title': gene_expression.columns[x_axis_dimension]},
-                yaxis={'title': gene_expression.columns[y_axis_dimension]},
-                margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
-                legend={'x': 0, 'y': 1},
-                hovermode='closest',
-                showlegend=False
-            )
-        }
+            }
 
         return figure
 
@@ -470,9 +571,34 @@ class Gene_Expression_Dataset_Plot:
         clustering_tab = html.Div(
             id="clustering_tab", className="tabcontent",
             children=[
+
                 html.Div(
-                    id="cluster_display_options",
+                    id="projection_div",
                     children=[
+
+                        dcc.Graph(
+                            id='projection',
+                            figure=self._projection_figure,
+                            config={'displaylogo': False}
+                        )
+                    ],
+                    style={
+                        "width": "50%",
+                        "display": "inline-block",
+                        "marginTop": 25}
+                ),
+                html.Div(
+                    id="cluster_display_options", className="bordered_container",
+                    children=[
+                        html.H4("Plot Options", className="container_title"),
+                        html.Div("Label Filters:",
+                                 style={"width": "50%", "display": "inline-block"}),
+                        html.Div("Projection:",
+                                 style={"width": "25%", "display": "inline-block"}),
+                        html.Div("X:",
+                                 style={"width": "12.5%", "display": "inline-block"}),
+                        html.Div("Y:",
+                                 style={"width": "12.5%", "display": "inline-block"}),
                         html.Div(children=[
                             dcc.Dropdown(
                                 id="cluster_filter_dropdown",
@@ -517,60 +643,62 @@ class Gene_Expression_Dataset_Plot:
                                 "width": "12.5%",
                                 "display": "inline-block"
                             }
-                        )
-                    ],
-                    style={"width": "50%"}
-                ),
-
-                html.Div(
-                    id="projection_div",
-                    children=[
-
-                        dcc.Graph(
-                            id='projection',
-                            figure=self._projection_figure
-                        )
-                    ],
-                    style={
-                        "width": "50%",
-                        "display": "inline-block",
-                        "marginTop": 25}
-                ),
-                html.Div(
-                    id="gene_filter_management", className="bordered_container",
-                    children=[
-                        html.H4("Gene Filter", className="container_title"),
-                        html.Div(
-                            id="gene_filter_dropdown_div",
-                            children=[
-                                dcc.Dropdown(
-                                    id="gene_filter_dropdown",
-                                    options=self._get_gene_options(),
-                                    value=[],
-                                    multi=False
-                                )
+                        ),
+                        dcc.Checklist(
+                            id="union_checklist",
+                            options=[
+                                {
+                                    'label': 'Union',
+                                    'value': 'union'
+                                }
                             ],
-                            style={
-                                "width": "50%"
-                            }
+                            values=['']
                         ),
                         html.Div(
-                            id="cell_value_range_slider_div",
+                            id="gene_filter", className="bordered_container",
                             children=[
-                                self.get_cell_value_range_slider(-2, 2)
+                                html.H4("Gene Filter", className="container_title"),
+                                html.Div(children=[
+                                    dcc.Dropdown(
+                                        id="gene_filter_dropdown",
+                                        options=self._get_gene_options(),
+                                        value=[],
+                                        multi=False
+                                    )
+                                    ],
+                                    style={
+                                        "width": "50%"
+                                    }
+                                ),
+                                html.Div(
+                                    id="cell_value_range_slider_div",
+                                    children=[
+                                        self.get_cell_value_range_slider(-2, 2)
+                                    ],
+                                    style={
+                                        "marginTop": 10,
+                                        "marginBottom": 20,
+                                        "width": "75%"
+                                    }
+                                )
+                            ]
+                        ),
+                        dcc.Checklist(
+                            id="color_by_gene_count_checklist",
+                            options=[
+                                {
+                                    'label': 'Color By Gene Count',
+                                    'value': 'color_by_gene_count'
+                                }
                             ],
-                            style={
-                                "marginTop": 10,
-                                "marginBottom": 20,
-                                "width": "75%"
-                            }
+                            values=['color_by_gene_count']
                         )
                     ],
                     style={
                         "width": "45%",
                         "display": "inline-block",
                         "vertical-align": "top",
-                        "marginLeft": 25
+                        "marginLeft": "3%"
                     }
                 ),
                 html.Div(
@@ -579,7 +707,7 @@ class Gene_Expression_Dataset_Plot:
                         html.H4(children="Label Management",
                                 className="container_title"),
                         html.Div(children=[
-                            html.Label("Label currently highlighed cells:")
+                            html.Label("Label currently highlighted cells:")
                         ]),
                         dcc.Input(
                             id="label_name",
@@ -694,6 +822,8 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="projection_dimensions", children=[],
                      style={"display": "none"}),
             html.Div(id="projection_values", children=[],
+                     style={"display": "none"}),
+            html.Div(id="cell_clusters", children=[],
                      style={"display": "none"})
         ]
 
@@ -1022,10 +1152,11 @@ class Gene_Expression_Dataset_Plot:
         @self._app.callback(
             dash.dependencies.Output("unfiltered_cells", "children"),
             [dash.dependencies.Input("cluster_filter_dropdown", "value"),
-             dash.dependencies.Input("cell_value_range_slider", "value")],
+             dash.dependencies.Input("cell_value_range_slider", "value"),
+             dash.dependencies.Input("union_checklist", "values")],
             [dash.dependencies.State("cell_color_values", "children")])
         def set_unfiltered_cells(selected_clusters, cell_value_range,
-                                 cell_color_values):
+                                 union_checklist_values, cell_color_values):
 
             if verbose:
                 print("set_unfiltered_cells")
@@ -1043,21 +1174,50 @@ class Gene_Expression_Dataset_Plot:
             if not cell_value_range:
                 cell_value_range = None
 
-            cells_in_cluster = \
-                self._gene_expression_dataset.get_cells(selected_clusters)
+            union = "union" in union_checklist_values
 
-            cells_to_remove = set()
-            if cell_value_range is not None and cells_gene_de is not None:
-                for cell in cells_in_cluster:
-                    cell_color_value = cells_gene_de[cell]
-                    if cell_color_value < cell_value_range[0] \
-                            or cell_color_value > cell_value_range[1]:
-                        cells_to_remove.add(cell)
-                unfiltered_cells = cells_in_cluster.difference(cells_to_remove)
+            if union:
+
+                cells_by_cluster = {}
+                for label in selected_clusters:
+                    cells_in_cluster = \
+                        self._gene_expression_dataset.get_cells(label)
+
+                    cells_to_remove = set()
+                    if cell_value_range is not None and cells_gene_de is not None:
+                        for cell in cells_in_cluster:
+                            cell_color_value = cells_gene_de[cell]
+                            if cell_color_value < cell_value_range[0] \
+                                    or cell_color_value > cell_value_range[1]:
+                                cells_to_remove.add(cell)
+                        unfiltered_cells = cells_in_cluster.difference(
+                            cells_to_remove)
+                    else:
+                        unfiltered_cells = cells_in_cluster
+
+                    cells_by_cluster[label] = list(unfiltered_cells)
+
             else:
-                unfiltered_cells = cells_in_cluster
+                cells_in_cluster = \
+                    self._gene_expression_dataset.get_cells(selected_clusters)
 
-            return json.dumps(list(unfiltered_cells))
+                cells_to_remove = set()
+                if cell_value_range is not None and cells_gene_de is not None:
+                    for cell in cells_in_cluster:
+                        cell_color_value = cells_gene_de[cell]
+                        if cell_color_value < cell_value_range[0] \
+                                or cell_color_value > cell_value_range[1]:
+                            cells_to_remove.add(cell)
+                    unfiltered_cells = cells_in_cluster.difference(cells_to_remove)
+                else:
+                    unfiltered_cells = cells_in_cluster
+
+                if selected_clusters is None:
+                    selected_clusters = ['All Cells']
+
+                cells_by_cluster = {" ".join(selected_clusters): list(unfiltered_cells)}
+
+            return json.dumps(cells_by_cluster)
 
         @self._app.callback(
             dash.dependencies.Output("projection_dimensions", "children"),
@@ -1109,11 +1269,13 @@ class Gene_Expression_Dataset_Plot:
             [dash.dependencies.Input("unfiltered_cells", "children"),
              dash.dependencies.Input("transformation_method_dropdown", "value"),
              dash.dependencies.Input("x_axis_dropdown", "value"),
-             dash.dependencies.Input("y_axis_dropdown", "value")],
+             dash.dependencies.Input("y_axis_dropdown", "value"),
+             dash.dependencies.Input("color_by_gene_count_checklist", "values")],
             [dash.dependencies.State("cell_color_values", "children")])
         def update_plot_from_filters(
                 unfiltered_cells, transformation_method, x_axis_dimension,
-                y_axis_dimension, cell_color_values):
+                y_axis_dimension, color_by_gene_count_checklist_values,
+                cell_color_values):
 
             if x_axis_dimension is None:
                 x_axis_dimension = 0
@@ -1127,6 +1289,9 @@ class Gene_Expression_Dataset_Plot:
 
             if verbose:
                 print("update_plot_from_cluster_filter")
+
+            color_by_gene_count = 'color_by_gene_count' in \
+                                  color_by_gene_count_checklist_values
 
             if cell_color_values:
                 cell_color_values = json.loads(cell_color_values)
@@ -1144,6 +1309,7 @@ class Gene_Expression_Dataset_Plot:
                 transformation_method,
                 highlighted_cells=unfiltered_cells,
                 cell_color_values=cell_color_values,
+                color_by_gene_count=color_by_gene_count,
                 x_axis_dimension=x_axis_dimension,
                 y_axis_dimension=y_axis_dimension)
 
