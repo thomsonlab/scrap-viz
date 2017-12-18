@@ -643,7 +643,8 @@ class Gene_Expression_Dataset_Plot:
                             )],
                             style={
                                 "width": "25%",
-                                "display": "inline-block"
+                                "display": "inline-block",
+                                "vertical-align": "top"
                             }
                         ),
                         html.Div(children=[
@@ -654,7 +655,8 @@ class Gene_Expression_Dataset_Plot:
                             )],
                             style={
                                 "width": "12.5%",
-                                "display": "inline-block"
+                                "display": "inline-block",
+                                "vertical-align": "top"
                             }
                         ),
                         html.Div(children=[
@@ -665,7 +667,8 @@ class Gene_Expression_Dataset_Plot:
                             )],
                             style={
                                 "width": "12.5%",
-                                "display": "inline-block"
+                                "display": "inline-block",
+                                "vertical-align": "top"
                             }
                         ),
                         dcc.Checklist(
@@ -948,6 +951,7 @@ class Gene_Expression_Dataset_Plot:
                     num_clusters,
                     transformation_method=transformation_method,
                     clustering_method=cluster_method)
+                self._gene_expression_dataset.save_labels()
                 self._n_clicks_auto_cluster = auto_cluster_n_clicks
             # If n_clicks of delete button is the same, this is an add label
             elif delete_label_n_clicks == self._n_clicks_delete_label:

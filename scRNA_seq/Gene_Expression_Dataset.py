@@ -194,15 +194,6 @@ class Gene_Expression_Dataset:
 
         return list(self._label_cells.keys())
 
-    def get_label_counts(self):
-
-        label_counts = []
-
-        for label, cells in self._label_cells:
-            label_counts.append((label, len(self.get_cells(label))))
-
-        return label_counts
-
     def filter_low_gene_counts(self, gene_count_threshold):
 
         self._gene_count_threshold = gene_count_threshold
@@ -351,7 +342,7 @@ class Gene_Expression_Dataset:
 
     def get_cells(self, labels=None, union=False):
 
-        if labels is None:
+        if labels is None or len(labels) == 0:
             return self._gene_counts.columns
         else:
             if isinstance(labels, str):
