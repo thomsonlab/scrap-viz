@@ -4,7 +4,7 @@ from scRNA_seq import Gene_Expression_Dataset
 
 dataset_path = os.path.expanduser(
     os.path.join(
-        "~", "Virus_Transcriptomics", "workspace"
+        "~", "Virus_Transcriptomics", "H2-small", "workspace"
     )
 )
 

@@ -505,12 +505,14 @@ class Gene_Expression_Dataset:
             gene_DE = pandas.DataFrame.from_dict(
                 gene_value_scores, orient="index")
 
-            gene_DE.columns = ["Log2 Change", "p-value", "Group 1 Mean",
-                "Group 1 SD", "Group 2 Mean", "Group 2 SD"]
+            gene_DE.columns = ["Log2 Change", "p-value", "difference",
+                               "Group 1 Mean", "Group 1 SD", "Group 2 Mean",
+                               "Group 2 SD"]
         else:
 
             gene_DE = pandas.DataFrame(
-                columns=["Cluster", "Log2 Change", "p-value", "Group 1 Mean",
+                columns=["Cluster", "Log2 Change", "p-value", "difference",
+                         "Group 1 Mean",
                     "Group 1 SD", "Group 2 Mean", "Group 2 SD"])
 
             for cluster in differential_clusters:
@@ -519,8 +521,8 @@ class Gene_Expression_Dataset:
                 label_2_cluster_cells = \
                     label_2_cells.intersection(self.get_cells(cluster))
 
-                if len(label_1_cluster_cells) == 0 or \
-                        len(label_2_cluster_cells) == 0:
+                if len(label_1_cluster_cells) <= 2 or \
+                        len(label_2_cluster_cells) <= 2:
                     continue
 
                 cluster_gene_value_scores = self.get_gene_value_scores(
@@ -531,7 +533,7 @@ class Gene_Expression_Dataset:
                     cluster_gene_value_scores, orient="index")
 
                 cluster_gene_DE.columns = \
-                    ["Log2 Change", "p-value", "Group 1 Mean",
+                    ["Log2 Change", "p-value", "difference", "Group 1 Mean",
                     "Group 1 SD", "Group 2 Mean", "Group 2 SD"]
 
                 cluster_gene_DE["Cluster"] = cluster
@@ -594,9 +596,10 @@ class Gene_Expression_Dataset:
             log_2_fold_change = math.log2(sample_1_mean_for_log /
                                           sample_2_mean_for_log)
 
-            _, p_value = stats.ks_2samp(sample_1_values, sample_2_values)
+            difference, p_value = stats.ks_2samp(sample_1_values,
+                                                 sample_2_values)
 
-            gene_value_scores[gene] = (log_2_fold_change, p_value,
+            gene_value_scores[gene] = (log_2_fold_change, p_value, difference,
                                        sample_1_mean, sample_1_SD,
                                        sample_2_mean, sample_2_SD)
 
@@ -637,7 +640,7 @@ class Gene_Expression_Dataset:
 
         total_cells = len(cells)
 
-        if total_cells == 0:
+        if total_cells == 0 or len(self._label_cells) == 0:
             empty = pandas.DataFrame(columns=["# Cells", "Ratio"])
             return empty
 

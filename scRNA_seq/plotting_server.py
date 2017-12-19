@@ -7,7 +7,7 @@ def launch_server():
 
     dataset_path = os.path.expanduser(
         os.path.join(
-            "~", "Virus_Transcriptomics", "workspace"
+            "~", "Virus_Transcriptomics", "H2-small", "workspace"
         )
     )
 

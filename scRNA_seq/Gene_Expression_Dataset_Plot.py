@@ -307,7 +307,23 @@ class Gene_Expression_Dataset_Plot:
 
         gene = self._de_stats.index[gene_index + self._de_start_range]
 
-        graph_title = "%s eCDF" % gene
+        if "Cluster" in self._de_stats.columns:
+            additional_cluster = self._de_stats.iloc[
+                gene_index + self._de_start_range]["Cluster"]
+            graph_title = "%s " % additional_cluster
+            group_1_labels = list(self._subgroup_1_labels)
+            group_1_labels.append(additional_cluster)
+            if self._subgroup_2_labels is None:
+                group_2_labels = list(self._subgroup_2_labels)
+                group_2_labels.append(additional_cluster)
+            else:
+                group_2_labels = [additional_cluster]
+        else:
+            group_1_labels = self._subgroup_1_labels
+            group_2_labels = self._subgroup_2_labels
+            graph_title = ""
+
+        graph_title += "%s eCDF" % gene
 
         subgroup_1_title = " ".join(self._subgroup_1_labels)
 
@@ -317,7 +333,7 @@ class Gene_Expression_Dataset_Plot:
             subgroup_2_title = "%s" % " ".join(self._subgroup_2_labels)
 
         group_1_counts = self._gene_expression_dataset.get_gene_counts(
-            gene, self._subgroup_1_labels
+            gene, group_1_labels
         )
         group_1_counts = group_1_counts.value_counts().sort_index()
         group_1_cum_sum = group_1_counts.cumsum()
@@ -342,7 +358,7 @@ class Gene_Expression_Dataset_Plot:
         )
 
         group_2_counts = self._gene_expression_dataset.get_gene_counts(
-            gene, self._subgroup_2_labels
+            gene, group_2_labels
         )
         group_2_counts = group_2_counts.value_counts().sort_index()
         group_2_cum_sum = group_2_counts.cumsum()
@@ -929,6 +945,11 @@ class Gene_Expression_Dataset_Plot:
                 href='/static/containers.css'
             ),
 
+            html.Link(
+                rel="stylesheet",
+                href='/static/plots.css'
+            ),
+
             html.Div(id="blah", className="tab", children=[
                 html.Button("Clustering", id="clustering_button",
                             className="tablinks"),
@@ -1493,14 +1514,10 @@ class Gene_Expression_Dataset_Plot:
                             subgroup_1_labels, subgroup_2_labels,
                             differential_clusters=de_across_dropdown,
                             use_normalized=use_normalized)
-                    self._de_stats["Log2 Change Abs"] = \
-                        abs(self._de_stats["Log2 Change"])
                     self._de_stats = self._de_stats.sort_values(
-                        ["p-value", "Log2 Change Abs"],
+                        ["p-value", "difference"],
                         ascending=[True, False]
                     )
-                    self._de_stats = self._de_stats.drop("Log2 Change Abs",
-                                                         axis=1)
 
                     self._subgroup_1_labels = subgroup_1_labels
                     self._subgroup_2_labels = subgroup_2_labels
@@ -1539,15 +1556,10 @@ class Gene_Expression_Dataset_Plot:
                                 "Log2 Change Abs",
                                 axis=1)
                         elif self._column_to_sort == 1:
-                            self._de_stats["Log2 Change Abs"] = \
-                                abs(self._de_stats["Log2 Change"])
                             self._de_stats = self._de_stats.sort_values(
-                                ["p-value", "Log2 Change Abs"],
+                                ["p-value", "difference"],
                                 ascending=[True, False]
                             )
-                            self._de_stats = self._de_stats.drop(
-                                "Log2 Change Abs",
-                                axis=1)
                         else:
                             column_to_sort_by = \
                                 self._de_stats.columns[self._column_to_sort]
@@ -1562,6 +1574,8 @@ class Gene_Expression_Dataset_Plot:
 
                     de = self._de_stats.iloc[
                          self._de_start_range:self._de_start_range+20]
+
+                    de = de.drop("difference", axis=1)
 
                     self._de_figure = \
                         self.generate_differential_gene_expression_table(de)
