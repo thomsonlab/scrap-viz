@@ -38,5 +38,6 @@ def launch_server():
 
     plot.start()
 
+
 if __name__ == "__main__":
     launch_server()

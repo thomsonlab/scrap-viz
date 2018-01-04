@@ -566,7 +566,8 @@ class Gene_Expression_Dataset_Plot:
                     children=[
                         html.Button("Go!", id="de_button"),
                         html.Button("Previous", id="de_previous_button"),
-                        html.Button("Next", id="de_next_button")
+                        html.Button("Next", id="de_next_button"),
+                        html.Button("Export", id="export_de_button")
                     ],
                     style={
                         "marginTop": "1%",
@@ -925,7 +926,8 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="projection_values", children=[],
                      style={"display": "none"}),
             html.Div(id="cell_clusters", children=[],
-                     style={"display": "none"})
+                     style={"display": "none"}),
+            html.Div(id="dummy", children=[], style={"display": "none"})
         ]
 
         self._app.layout = html.Div([
@@ -1671,6 +1673,34 @@ class Gene_Expression_Dataset_Plot:
             if verbose:
                 print("data_edited")
             return self._get_label_options()
+
+        @self._app.callback(
+            dash.dependencies.Output("dummy", "children"),
+            [dash.dependencies.Input("export_de_button", "n_clicks")]
+        )
+        def export_de_clicked(n_clicks):
+
+            if not n_clicks:
+                return []
+
+            if not self._subgroup_1_labels:
+                return []
+
+            if self._de_stats is None:
+                return []
+
+            file_name = "_".join(self._subgroup_1_labels)
+
+            if self._subgroup_2_labels:
+                file_name += "_vs_" + "_".join(self._subgroup_2_labels)
+
+            file_name = file_name.replace(" ", "_")
+
+            file_name += "_DE.csv"
+
+            Gene_Expression_Dataset.write_pandas_csv(self._de_stats, file_name)
+
+            return []
 
         @self._app.callback(
             dash.dependencies.Output("gene_count_table", "children"),
