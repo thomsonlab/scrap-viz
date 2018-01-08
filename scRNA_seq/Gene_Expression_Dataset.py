@@ -16,7 +16,6 @@ import scipy
 import json
 from sklearn import mixture
 import urllib3 as urllib
-import operator
 
 Entrez_gene_summary_marker = " Entrez Gene Summary for "
 gene_summary_marker = " Summary for "

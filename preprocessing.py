@@ -2,19 +2,15 @@ import os
 from scRNA_seq import Gene_Expression_Dataset
 
 
-dataset_path = os.path.expanduser(
-    os.path.join(
-        "~", "Nf-1_Transcriptomics", "TENX-70-NUCSEQ-SMALL", "workspace"
-    )
-)
+dataset_path = "/home/dibidave/Virus_Transcriptomics/DRG/workspace"
 
-pipeline_name = "5_500_RPM_SD"
+pipeline_name = "5_1000_RPM_SD"
 
 gene_expression_dataset = Gene_Expression_Dataset(dataset_path)
 
 print("Filtering...")
 gene_expression_dataset.filter_low_gene_counts(5)
-gene_expression_dataset.filter_low_transcript_cells(500)
+gene_expression_dataset.filter_low_transcript_cells(1000)
 print("Normalizing...")
 gene_expression_dataset.normalize_cells(
     Gene_Expression_Dataset.Data_Mode.READS_PER_MILLION_TRANSCRIPTS)

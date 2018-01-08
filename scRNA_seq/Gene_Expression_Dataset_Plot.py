@@ -11,7 +11,7 @@ import os
 from flask import send_from_directory
 from matplotlib import pyplot
 
-verbose = False
+verbose = True
 
 
 class Gene_Expression_Dataset_Plot:
@@ -207,6 +207,9 @@ class Gene_Expression_Dataset_Plot:
                     showlegend=True
                 )
             }
+
+        if verbose:
+            print("Returning projection figure")
 
         return figure
 
@@ -1249,7 +1252,6 @@ class Gene_Expression_Dataset_Plot:
 
             if verbose:
                 print("update_cell_value_range_slider")
-                print(cell_color_values)
 
             if not cell_color_values:
                 return []
@@ -1262,7 +1264,9 @@ class Gene_Expression_Dataset_Plot:
             min_value = min(de_data.values())
             max_value = max(de_data.values())
 
-            return [self.get_cell_value_range_slider(min_value, max_value)]
+            slider = [self.get_cell_value_range_slider(min_value, max_value)]
+
+            return slider
 
         @self._app.callback(
             dash.dependencies.Output("cell_color_values", "children"),
@@ -1444,13 +1448,18 @@ class Gene_Expression_Dataset_Plot:
             else:
                 unfiltered_cells = None
 
-            return self.get_projection_figure(
+            proj_figure = self.get_projection_figure(
                 transformation_method,
                 highlighted_cells=unfiltered_cells,
                 cell_color_values=cell_color_values,
                 color_by_gene_count=color_by_gene_count,
                 x_axis_dimension=x_axis_dimension,
                 y_axis_dimension=y_axis_dimension)
+
+            if verbose:
+                print("update_plot_from_cluster_filter finished")
+
+            return proj_figure
 
         @self._app.callback(
             dash.dependencies.Output("label_table", "children"),

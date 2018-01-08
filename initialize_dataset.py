@@ -3,12 +3,7 @@ from scRNA_seq import Gene_Expression_Dataset
 
 seed_matrices_file_paths = []
 
-seed_matrices_file_paths.append(os.path.expanduser(
-    os.path.join(
-        "~", "Nf-1_Transcriptomics", "TENX-70-NUCSEQ-SMALL", "mm10_premrna",
-        "matrix.csv"
-    )
-))
+seed_matrices_file_paths.append("/media/dibidave/mobinoodle/Virus_Transcriptomics/DRG/transcripts/gene_counts.csv")
 
 # seed_matrices_file_paths.append(os.path.expanduser(
 #     os.path.join(
@@ -17,11 +12,7 @@ seed_matrices_file_paths.append(os.path.expanduser(
 #     )
 # ))
 
-dataset_path = os.path.expanduser(
-    os.path.join(
-        "~", "Nf-1_Transcriptomics", "TENX-70-NUCSEQ-SMALL", "workspace"
-    )
-)
+dataset_path = "/media/dibidave/mobinoodle/Virus_Transcriptomics/DRG/workspace"
 
 dataset = Gene_Expression_Dataset(
     dataset_path,
