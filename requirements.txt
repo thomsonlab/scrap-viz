@@ -10,3 +10,6 @@ flask~=0.12.2
 h5py~=2.7.1
 numpy~=1.13.3
 urllib3~=1.22
+dash-renderer~=0.11.1
+dash-core-components~=0.14.0
+dash-html-components~=0.8.0
