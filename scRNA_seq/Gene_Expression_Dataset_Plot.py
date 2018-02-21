@@ -1554,9 +1554,20 @@ class Gene_Expression_Dataset_Plot:
                 x = click_data["points"][0]["x"]
                 y = click_data["points"][0]["y"]
                 if y == 0 and x > 0:
-                    if x - 1 != self._column_to_sort:
-                        self._column_to_sort = x - 1
+
+                    # Ignore the difference column... wow this is hacky
+                    if x >= 2:
+                        column_to_sort_by = x
+                    else:
+                        column_to_sort_by = x - 1
+
+                    if column_to_sort_by != self._column_to_sort:
+
+                        self._column_to_sort = column_to_sort_by
                         self._de_start_range = 0
+
+                        print("Sorting by column %i" % self._column_to_sort)
+                        print(self._de_stats.columns)
 
                         if self._column_to_sort == 0:
                             self._de_stats["Log2 Change Abs"] = \
