@@ -175,7 +175,7 @@ class Gene_Expression_Dataset:
         self._dataset_path = dataset_path
         self._gene_counts = None
         self._zero_genes = None
-        self._normalized_gene_counts = None
+        self._processed_gene_counts = None
         self._pca = None
         self._NMF_model = None
         self._SVD_model = None
@@ -183,7 +183,7 @@ class Gene_Expression_Dataset:
         self._label_cells = {}
         self._cell_transcript_counts = None
         self._gene_means = None
-        self._normalized_gene_means = None
+        self._processed_gene_means = None
         self._gene_cache = {}
 
         if name is None:
@@ -212,11 +212,11 @@ class Gene_Expression_Dataset:
             (self._gene_counts.max(axis=1) < gene_count_threshold)
 
         self._gene_counts = self._gene_counts[~genes_below_threshold]
-        if self._normalized_gene_counts is not None:
-            self._normalized_gene_counts = \
-                self._normalized_gene_counts[~genes_below_threshold]
-            self._normalized_gene_means = \
-                self._normalized_gene_means[~genes_below_threshold]
+        if self._processed_gene_counts is not None:
+            self._processed_gene_counts = \
+                self._processed_gene_counts[~genes_below_threshold]
+            self._processed_gene_means = \
+                self._processed_gene_means[~genes_below_threshold]
         self._gene_means = self._gene_means[~genes_below_threshold]
 
     def filter_low_transcript_cells(self, transcript_count_threshold):
@@ -237,9 +237,9 @@ class Gene_Expression_Dataset:
 
         self._gene_means = self._gene_counts.mean(axis=1)
 
-        if self._normalized_gene_counts is not None:
-            self._normalized_gene_means = \
-                self._normalized_gene_counts.mean(axis=1)
+        if self._processed_gene_counts is not None:
+            self._processed_gene_means = \
+                self._processed_gene_counts.mean(axis=1)
 
         self._cell_transcript_counts = self._cell_transcript_counts.drop(
             cell_names_below_threshold)
@@ -247,17 +247,20 @@ class Gene_Expression_Dataset:
     def normalize_cells(
             self, data_mode=Data_Mode.READS_PER_MILLION_TRANSCRIPTS):
 
+        if self._processed_gene_counts is None:
+            self._processed_gene_counts = self._gene_counts.copy()
+
         if data_mode == self.Data_Mode.READS_PER_MILLION_TRANSCRIPTS:
 
-            self._gene_counts = self._gene_counts.div(
+            self._processed_gene_counts = self._processed_gene_counts.div(
                 self._cell_transcript_counts.loc[
                     self._gene_counts.columns]["TOTAL_TRANSCRIPT_COUNT"])
 
-            self._gene_counts *= 1e6
+            self._processed_gene_counts *= 1e6
 
         elif data_mode == self.Data_Mode.GENE_PROBABILITIES:
 
-            for cell, gene_counts in self._gene_counts.iteritems():
+            for cell, gene_counts in self._processed_gene_counts.iteritems():
                 zero_counts = sum(gene_counts == 0)
                 single_counts = sum(gene_counts == 1)
                 total_count = self._cell_transcript_counts[
@@ -297,7 +300,7 @@ class Gene_Expression_Dataset:
     def transform(self, method=Transformation_Method.PCA, num_dimensions=2,
                   use_normalized=False):
 
-        if use_normalized and self._normalized_gene_counts is None:
+        if use_normalized and self._processed_gene_counts is None:
             use_normalized = False
 
         if method == self.Transformation_Method.PCA:
@@ -305,8 +308,9 @@ class Gene_Expression_Dataset:
             self._pca = PCA(n_components=num_dimensions)
 
             if use_normalized:
+                print(self._processed_gene_counts.transpose())
                 transformed = self._pca.fit_transform(
-                    self._normalized_gene_counts.transpose())
+                    self._processed_gene_counts.transpose())
             else:
                 transformed = self._pca.fit_transform(
                     self._gene_counts.transpose())
@@ -327,7 +331,7 @@ class Gene_Expression_Dataset:
                 transformed = TSNE(
                     verbose=True, perplexity=30, n_components=num_dimensions).\
                     fit_transform(
-                        self._normalized_gene_counts.transpose())
+                        self._processed_gene_counts.transpose())
 
             self._transformed[self.Transformation_Method.TSNE] = \
                 pandas.DataFrame(transformed)
@@ -343,7 +347,7 @@ class Gene_Expression_Dataset:
 
             if use_normalized:
                 transformed = self._NMF_model.fit_transform(
-                    self._normalized_gene_counts.transpose())
+                    self._processed_gene_counts.transpose())
             else:
                 transformed = self._NMF_model.fit_transform(
                     self._gene_counts.transpose())
@@ -358,7 +362,7 @@ class Gene_Expression_Dataset:
 
             if use_normalized:
                 transformed = self._SVD_model.fit_transform(
-                    self._normalized_gene_counts.transpose())
+                    self._processed_gene_counts.transpose())
             else:
                 transformed = self._SVD_model.fit_transform(
                     self._gene_counts.transpose())
@@ -370,7 +374,7 @@ class Gene_Expression_Dataset:
 
         if use_normalized:
             self._transformed[method].index = \
-                self._normalized_gene_counts.columns
+                self._processed_gene_counts.columns
         else:
             self._transformed[method].index = \
                 self._gene_counts.columns
@@ -486,7 +490,7 @@ class Gene_Expression_Dataset:
                                 differential_clusters=None,
                                 use_normalized=True):
 
-        if use_normalized and self._normalized_gene_counts is None:
+        if use_normalized and self._processed_gene_counts is None:
             use_normalized = False
 
         label_1_cells = self.get_cells(label_1)
@@ -552,7 +556,7 @@ class Gene_Expression_Dataset:
         gene_value_scores = {}
 
         if use_normalized:
-            cell_gene_counts = self._normalized_gene_counts.copy()
+            cell_gene_counts = self._processed_gene_counts.copy()
         else:
             cell_gene_counts = self._gene_counts.copy()
 
@@ -625,11 +629,14 @@ class Gene_Expression_Dataset:
 
         return cell_gene_expression
 
-    def get_gene_counts(self, gene, filter_labels=None):
+    def get_gene_counts(self, gene, processed=False, filter_labels=None):
 
         cells = self.get_cells(filter_labels)
 
-        return self._gene_counts.loc[gene][cells]
+        if processed:
+            return self._processed_gene_counts.loc[gene][cells]
+        else:
+            return self._gene_counts.loc[gene][cells]
 
     def get_label_counts(self, filter_labels=None, union=False):
 
@@ -658,18 +665,20 @@ class Gene_Expression_Dataset:
 
     def normalize_genes(self, method=Normalization_Method.STD):
 
+        if self._processed_gene_counts is None:
+            self._processed_gene_counts = self._gene_counts.copy()
+
         if method == self.Normalization_Method.STD:
 
-            gene_sds = self._gene_counts.std(axis=1)
+            gene_sds = self._processed_gene_counts.std(axis=1)
 
-            self._normalized_gene_counts = self._gene_counts.copy().div(
+            self._processed_gene_counts = self._processed_gene_counts.div(
                 gene_sds, axis=0)
 
         elif method == self.Normalization_Method.ECDF:
 
-            self._normalized_gene_counts = self._gene_counts.copy()
             gene_index = 0
-            for gene, gene_counts in self._normalized_gene_counts.iterrows():
+            for gene, gene_counts in self._processed_gene_counts.iterrows():
 
                 value_counts = gene_counts.value_counts()
                 eCDF = value_counts.sort_index().cumsum() * 1. / self.num_cells
@@ -683,8 +692,8 @@ class Gene_Expression_Dataset:
 
                 gene_index += 1
 
-        self._normalized_gene_means = \
-            self._normalized_gene_counts.mean(axis=1)
+        self._processed_gene_means = \
+            self._processed_gene_counts.mean(axis=1)
 
     def save_labels(self):
 
@@ -692,21 +701,21 @@ class Gene_Expression_Dataset:
             self._label_cells, self._get_cell_labels_file_path())
 
     def load(self, name):
-
+        
         gene_counts_path = os.path.join(self._dataset_path,
                                         "gene_counts_%s.csv" % name)
-
+        
         self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_counts_path
         )
 
-        normalized_path = os.path.join(self._dataset_path,
-                                       "normalized_%s.csv" % name)
+        processed_path = os.path.join(self._dataset_path,
+                                       "processed_%s.csv" % name)
 
-        if os.path.isfile(normalized_path):
+        if os.path.isfile(processed_path):
 
-            self._normalized_gene_counts = \
-                Gene_Expression_Dataset.read_pandas_csv(normalized_path)
+            self._processed_gene_counts = \
+                Gene_Expression_Dataset.read_pandas_csv(processed_path)
 
         for method_name, method in \
                 self.Transformation_Method.__members__.items():
@@ -732,10 +741,10 @@ class Gene_Expression_Dataset:
             self._gene_counts,
             os.path.join(self._dataset_path, "gene_counts_%s.csv" % name))
 
-        if self._normalized_gene_counts is not None:
+        if self._processed_gene_counts is not None:
             Gene_Expression_Dataset.write_pandas_csv(
-                self._normalized_gene_counts,
-                os.path.join(self._dataset_path, "normalized_%s.csv" % name))
+                self._processed_gene_counts,
+                os.path.join(self._dataset_path, "processed_%s.csv" % name))
 
         for method_name, method in \
                 self.Transformation_Method.__members__.items():
@@ -977,9 +986,9 @@ class Gene_Expression_Dataset:
 
         self._gene_means = self._gene_counts.mean(axis=1)
 
-        if self._normalized_gene_counts is not None:
+        if self._processed_gene_counts is not None:
 
-            self._normalized_gene_means = self._normalized_gene_counts.mean(
+            self._processed_gene_means = self._processed_gene_counts.mean(
                 axis=1
             )
 

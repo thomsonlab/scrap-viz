@@ -474,6 +474,15 @@ class Gene_Expression_Dataset_Plot:
         return label_options
 
     @staticmethod
+    def _get_label_type_options():
+
+        label_types = ["L2FC", "Count", "Processed"]
+
+        label_type_options = [{"label": x, "value": x} for x in label_types]
+
+        return label_type_options
+
+    @staticmethod
     def _get_transformation_method_options():
 
         label_options = []
@@ -766,6 +775,24 @@ class Gene_Expression_Dataset_Plot:
                                 }
                             ],
                             values=['color_by_gene_count']
+                        ),
+                        html.Div(
+                            id="label_type", className="bordered_container",
+                            children=[
+                                html.H4("Label Type", className="container_title"),
+                                html.Div(children=[
+                                    dcc.Dropdown(
+                                        id="label_type_dropdown",
+                                        options=Gene_Expression_Dataset_Plot._get_label_type_options(),
+                                        value=["L2FC"],
+                                        multi=False
+                                    )
+                                    ],
+                                    style={
+                                        "width": "50%"
+                                    }
+                                )
+                            ]
                         )
                     ],
                     style={
@@ -1082,6 +1109,7 @@ class Gene_Expression_Dataset_Plot:
                     for label in unfiltered_cells:
                         cells_to_label = \
                             cells_to_label.union(set(unfiltered_cells[label]))
+
                     cells_to_label = cells_to_label.intersection(selected_cells)
                 else:
                     cells_to_label = selected_cells
@@ -1270,8 +1298,9 @@ class Gene_Expression_Dataset_Plot:
 
         @self._app.callback(
             dash.dependencies.Output("cell_color_values", "children"),
-            [dash.dependencies.Input("gene_filter_dropdown", "value")])
-        def update_cell_color_values(gene):
+            [dash.dependencies.Input("gene_filter_dropdown", "value"),
+             dash.dependencies.Input("label_type_dropdown", "value")])
+        def update_cell_color_values(gene, label_type):
 
             if not gene:
                 cell_read_counts = \
@@ -1282,7 +1311,14 @@ class Gene_Expression_Dataset_Plot:
                         for gene, count in cell_read_counts.items()}
                 return json.dumps(cell_read_count_ints)
 
-            de = self._gene_expression_dataset.get_cell_gene_differential(gene)
+            print(label_type)
+
+            if label_type == "Count":
+                de = self._gene_expression_dataset.get_gene_counts(gene)
+            elif label_type == "Processed":
+                de = self._gene_expression_dataset.get_gene_counts(gene, processed=True)
+            else:
+                de = self._gene_expression_dataset.get_cell_gene_differential(gene)
 
             return json.dumps(de.to_dict())
 
