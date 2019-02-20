@@ -1,8 +1,9 @@
 import os
 import argparse
 
-from scRNA_seq import Gene_Expression_Dataset
-from scRNA_seq import Gene_Expression_Dataset_Plot
+from scrap_viz import Gene_Expression_Dataset
+from scrap_viz import Gene_Expression_Dataset_Plot
+from scrap_viz import Gene_Metadata
 
 
 def get_arguments():
@@ -13,6 +14,8 @@ def get_arguments():
                            help="Name of the pipeline to use", default=None)
     argparser.add_argument("--workspace_path", "-w",
                            help="Path to the workspace", default=None)
+    argparser.add_argument("--host_port", "-o",
+                           help="What port to host on", default=8050, type=int)
 
     args = argparser.parse_args()
 
@@ -34,7 +37,13 @@ def launch_server():
         name=pipeline_name
     )
 
-    plot = Gene_Expression_Dataset_Plot(gene_expression_dataset)
+    gene_metadata = Gene_Metadata(dir_path=args.workspace_path)
+
+    print("Dataset loaded, creating plot...")
+
+    plot = Gene_Expression_Dataset_Plot(gene_expression_dataset,
+                                        gene_metadata,
+                                        port=args.host_port)
 
     plot.start()
 
