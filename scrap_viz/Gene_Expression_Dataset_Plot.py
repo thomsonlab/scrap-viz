@@ -16,10 +16,11 @@ verbose = True
 
 class Gene_Expression_Dataset_Plot:
 
-    def __init__(self, gene_expression_dataset):
+    def __init__(self, gene_expression_dataset, gene_metadata, port):
 
         self._app = None
         self._gene_expression_dataset = gene_expression_dataset
+        self._gene_metadata = gene_metadata
         self._projection_figure = None
         self._tabs = []
         self._data_containers = []
@@ -40,6 +41,7 @@ class Gene_Expression_Dataset_Plot:
         self._column_to_sort = 1
         self._regenerate_de = False
         self._de_figure = None
+        self._port = port
 
     def get_projection_figure(
             self, transformation_method=None,
@@ -49,6 +51,8 @@ class Gene_Expression_Dataset_Plot:
 
         if transformation_method is None:
             transformation_method = self._get_default_transformation_method()
+
+        print("Getting gene expression...")
 
         gene_expression = \
             self._gene_expression_dataset.get_cell_gene_expression(
@@ -65,12 +69,15 @@ class Gene_Expression_Dataset_Plot:
 
             if highlighted_cells is not None:
 
+                print("Getting highlighted cells...")
+
                 all_highlighted_cells = highlighted_cells[
                     sorted(highlighted_cells.keys())[0]]
                 for i in range(1, len(highlighted_cells)):
                     all_highlighted_cells.extend(
                         highlighted_cells[sorted(highlighted_cells.keys())[i]])
 
+            print("Getting x/y values, color, and hover text for all cells...")
             for cell, cell_gene_expression in gene_expression.iterrows():
 
                 x_values.append(
@@ -89,40 +96,42 @@ class Gene_Expression_Dataset_Plot:
                         cell in all_highlighted_cells:
                     colors.append(color_value)
                 else:
-                    colors.append("rgba(150, 150, 150, 0.25")
+                    colors.append("rgba(150, 150, 150, 0.25)")
                 hover_text.append(
                     "%s<BR>%s" % (cell, color_value))
 
                 self._cells.append(cell)
 
-                figure = {
-                    'data': [
-                        go.Scatter(
-                            x=x_values,
-                            y=y_values,
-                            mode='markers',
-                            opacity=0.7,
-                            marker={
-                                'size': 5,
-                                # 'line': {'width': 0.5, 'color': 'white'},
-                                'color': colors,
-                                'colorscale': 'Viridis',
-                                'showscale': True
-                            },
-                            text=hover_text,
-                            hoverinfo="text"
-                        )],
-                    'layout': go.Layout(
-                        xaxis={
-                            'title': gene_expression.columns[x_axis_dimension]},
-                        yaxis={
-                            'title': gene_expression.columns[y_axis_dimension]},
-                        margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
-                        legend={'x': 0, 'y': 1},
-                        hovermode='closest',
-                        showlegend=False
-                    )
-                }
+            print("Creating figure object...")
+
+            figure = {
+                'data': [
+                    go.Scatter(
+                        x=x_values,
+                        y=y_values,
+                        mode='markers',
+                        opacity=0.7,
+                        marker={
+                            'size': 5,
+                            # 'line': {'width': 0.5, 'color': 'white'},
+                            'color': colors,
+                            'colorscale': 'Viridis',
+                            'showscale': True
+                        },
+                        text=hover_text,
+                        hoverinfo="text"
+                    )],
+                'layout': go.Layout(
+                    xaxis={
+                        'title': gene_expression.columns[x_axis_dimension]},
+                    yaxis={
+                        'title': gene_expression.columns[y_axis_dimension]},
+                    margin={'l': 40, 'b': 40, 't': 10, 'r': 10},
+                    legend={'x': 0, 'y': 1},
+                    hovermode='closest',
+                    showlegend=False
+                )
+            }
 
         else:
             x_values = {}
@@ -134,6 +143,8 @@ class Gene_Expression_Dataset_Plot:
             colors = self.get_colors(len(highlighted_cells))
 
             if highlighted_cells is not None:
+
+                print("Getting highlighted cells...")
                 for label_index, label in enumerate(sorted(highlighted_cells)):
                     x_values[label] = []
                     y_values[label] = []
@@ -147,6 +158,7 @@ class Gene_Expression_Dataset_Plot:
             label_colors['Other'] = "rgba(150, 150, 150, 0.25)"
             hover_text['Other'] = []
 
+            print("Getting x/y values, color, and hover text for all cells...")
             for cell, cell_gene_expression in gene_expression.iterrows():
 
                 cell_label = 'Other'
@@ -182,6 +194,8 @@ class Gene_Expression_Dataset_Plot:
                     hover_text[cell_label].append("%s<BR>%s" % (cell, color_value))
 
                 self._cells.append(cell)
+
+            print("Creating figure object...")
 
             figure = {
                 'data': [
@@ -259,8 +273,7 @@ class Gene_Expression_Dataset_Plot:
         genes = data_frame.index
 
         gene_name_descriptions = \
-            self._gene_expression_dataset.get_gene_summaries(genes)
-
+            self._gene_metadata.get_gene_summaries(genes)
 
         num_rows = data_frame.shape[0]
 
@@ -547,6 +560,8 @@ class Gene_Expression_Dataset_Plot:
 
     def _get_differential_expression_tab(self):
 
+        print("Getting DE tab...")
+
         differential_expression_tab = html.Div(
             id="de_tab", className="tabcontent",
             children=[
@@ -638,6 +653,8 @@ class Gene_Expression_Dataset_Plot:
         )
 
     def _get_clustering_tab(self):
+
+        print("Getting clustering tab...")
 
         clustering_tab = html.Div(
             id="clustering_tab", className="tabcontent",
@@ -906,6 +923,8 @@ class Gene_Expression_Dataset_Plot:
         self._app.css.config.serve_locally = True
         self._app.scripts.config.serve_locally = True
 
+        print("Creating projection figure...")
+
         self._projection_figure = self.get_projection_figure(
             Gene_Expression_Dataset.Transformation_Method.TSNE)
 
@@ -913,6 +932,8 @@ class Gene_Expression_Dataset_Plot:
             self._get_clustering_tab(),
             self._get_differential_expression_tab()
         ]
+
+        print("Creating data containers...")
 
         self._data_containers = [
             html.Div(id="labels", children=[], style={"display": "none"}),
@@ -932,6 +953,8 @@ class Gene_Expression_Dataset_Plot:
                      style={"display": "none"}),
             html.Div(id="dummy", children=[], style={"display": "none"})
         ]
+
+        print("Creating layout...")
 
         self._app.layout = html.Div([
 
@@ -966,6 +989,8 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="tabs", children=self._tabs, style={"marginTop": 10}),
             html.Div(id="data", children=self._data_containers)
         ])
+
+        print("Setting route...")
 
         @self._app.server.route('/static/<path:path>')
         def static_file(path):
@@ -1756,4 +1781,4 @@ class Gene_Expression_Dataset_Plot:
                     gene_expression, index=True, index_title="Gene"),
                 config={'displayModeBar': False})
 
-        self._app.run_server()
+        self._app.run_server(port=self._port)

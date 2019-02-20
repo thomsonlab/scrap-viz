@@ -1,23 +1,23 @@
 import os
-from scRNA_seq import Gene_Expression_Dataset
+from scrap_viz import Gene_Expression_Dataset
 import sys
 
 
 dataset_path = os.getcwd()
 
-pipeline_name = "3_800_RPM_SD"
+pipeline_name = "5_RPM_SQRT"
 
 gene_expression_dataset = Gene_Expression_Dataset(dataset_path)
 
 print("Filtering...")
-gene_expression_dataset.filter_low_gene_counts(3)
-gene_expression_dataset.filter_low_transcript_cells(800)
+gene_expression_dataset.filter_low_gene_counts(5)
 
 print("Normalizing...")
 gene_expression_dataset.normalize_cells(
     Gene_Expression_Dataset.Data_Mode.READS_PER_MILLION_TRANSCRIPTS)
 gene_expression_dataset.normalize_genes(
-    Gene_Expression_Dataset.Normalization_Method.STD)
+    Gene_Expression_Dataset.Normalization_Method.SQUARE_ROOT)
+
 print("Transforming...")
 gene_expression_dataset.transform(
     Gene_Expression_Dataset.Transformation_Method.PCA, num_dimensions=30,
