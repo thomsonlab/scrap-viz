@@ -45,6 +45,7 @@ class Gene_Expression_Dataset_Plot:
         self._regenerate_de = False
         self._de_figure = None
         self._port = port
+        self._eCDF_gene_index = None
 
     def get_projection_figure(
             self, transformation_method=None,
@@ -324,11 +325,13 @@ class Gene_Expression_Dataset_Plot:
         if self._de_stats is None:
             return []
 
-        gene = self._de_stats.index[gene_index + self._de_start_range]
+        self._eCDF_gene_index = gene_index
+
+        gene = self._de_stats.index[gene_index]
 
         if "Cluster" in self._de_stats.columns:
             additional_cluster = self._de_stats.iloc[
-                gene_index + self._de_start_range]["Cluster"]
+                gene_index]["Cluster"]
             graph_title = "%s " % additional_cluster
             group_1_labels = list(self._subgroup_1_labels)
             group_1_labels.append(additional_cluster)
@@ -408,7 +411,7 @@ class Gene_Expression_Dataset_Plot:
             ),
             yaxis=dict(
                 title="Cumulative Probability",
-                range=[0, 1]
+                range=[0, 1.05]
             ),
             hovermode="closest"
         )
@@ -419,7 +422,11 @@ class Gene_Expression_Dataset_Plot:
             id="gene_eCDF",
             figure={
                 "data": data,
-                "layout": layout
+                "layout": layout,
+                "config": {
+                    "displayModeBar": False,
+                    "displaylogo": False
+                }
             }
         )
 
@@ -617,7 +624,7 @@ class Gene_Expression_Dataset_Plot:
                             dcc.Graph(id="de_plot")
                         ]
                     )
-                ], style={"width": "60%", "display": "inline-block"}),
+                ], style={"width": "55%", "display": "inline-block"}),
                 html.Div(
                     id="gene_pane",
                     children=[],
@@ -948,6 +955,7 @@ class Gene_Expression_Dataset_Plot:
     def start(self):
 
         self._app = dash.Dash()
+        self._app.title = "SCRAP-viz"
         self._app.css.config.serve_locally = True
         self._app.scripts.config.serve_locally = True
 
@@ -1017,6 +1025,8 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="tabs", children=self._tabs, style={"marginTop": 10}),
             html.Div(id="data", children=self._data_containers)
         ])
+
+        self._app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
 
         print("Setting route...")
 
@@ -1674,19 +1684,37 @@ class Gene_Expression_Dataset_Plot:
 
         @self._app.callback(
             dash.dependencies.Output("gene_pane", "children"),
-            [dash.dependencies.Input("de_table_graph", "clickData")]
+            [dash.dependencies.Input("de_table_graph", "clickData"),
+             dash.dependencies.Input("de_plot", "clickData")]
         )
-        def de_figure_clicked(click_data):
+        def de_figure_clicked(table_click_data, plot_click_data):
             if verbose:
                 print("de_figure_clicked")
 
-            if click_data is None:
+            if table_click_data is not None:
+                table_gene_index = table_click_data["points"][0]["y"] - 1 + \
+                                   self._de_start_range
+            else:
+                table_gene_index = None
+
+            if plot_click_data is not None:
+                plot_gene_index = plot_click_data["points"][0]["pointNumber"]
+            else:
+                plot_gene_index = None
+
+            if plot_gene_index is not None and \
+                    plot_gene_index != self._eCDF_gene_index:
+                gene_index = plot_gene_index
+            elif table_gene_index is not None and \
+                    table_gene_index != self._eCDF_gene_index:
+                gene_index = table_gene_index
+            else:
+                gene_index = self._eCDF_gene_index
+
+            if gene_index is None:
                 return []
 
-            if click_data["points"][0]["y"] == 0:
-                return []
-
-            return self._get_gene_eCDF(click_data["points"][0]["y"] - 1)
+            return self._get_gene_eCDF(gene_index)
 
         @self._app.callback(
             dash.dependencies.Output("cluster_filter_dropdown", "value"),
