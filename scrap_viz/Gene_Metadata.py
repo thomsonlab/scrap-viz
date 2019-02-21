@@ -35,6 +35,11 @@ class Gene_Metadata:
 
         gene_name_descriptions = []
 
+        for _ in genes:
+            gene_name_descriptions.append("No response")
+
+        return gene_name_descriptions
+
         http = urllib.PoolManager()
 
         added_gene = False
@@ -56,8 +61,6 @@ class Gene_Metadata:
             added_gene = True
 
             string = response.data.decode("UTF-8")
-
-            print(string)
 
             if string.find("was not found") != -1:
                 self._gene_cache[gene] = (gene, "Gene not found")

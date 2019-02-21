@@ -11,6 +11,9 @@ import os
 from flask import send_from_directory
 from matplotlib import pyplot
 
+from . import Transformation_Method
+from . import Clustering_Method
+
 verbose = True
 
 
@@ -489,7 +492,7 @@ class Gene_Expression_Dataset_Plot:
     @staticmethod
     def _get_label_type_options():
 
-        label_types = ["L2FC", "Count", "Processed"]
+        label_types = ["L2FC", "Count", "Normalized"]
 
         label_type_options = [{"label": x, "value": x} for x in label_types]
 
@@ -501,7 +504,6 @@ class Gene_Expression_Dataset_Plot:
         label_options = []
 
         for method_name, method in \
-                Gene_Expression_Dataset.\
                 Transformation_Method.__members__.items():
             label_options.append({"label": method_name, "value": method_name})
 
@@ -510,7 +512,7 @@ class Gene_Expression_Dataset_Plot:
     @staticmethod
     def _get_default_transformation_method():
 
-        return Gene_Expression_Dataset.Transformation_Method.TSNE
+        return Transformation_Method.TSNE
 
     @staticmethod
     def _get_cluster_method_options():
@@ -518,7 +520,6 @@ class Gene_Expression_Dataset_Plot:
         label_options = []
 
         for method_name, method in \
-                Gene_Expression_Dataset.\
                 Clustering_Method.__members__.items():
             label_options.append({"label": method_name, "value": method_name})
 
@@ -527,7 +528,7 @@ class Gene_Expression_Dataset_Plot:
     @staticmethod
     def _get_default_cluster_method():
 
-        return Gene_Expression_Dataset.Clustering_Method.K_MEANS
+        return Clustering_Method.K_MEANS
 
     def _get_gene_options(self):
 
@@ -801,7 +802,7 @@ class Gene_Expression_Dataset_Plot:
                                     dcc.Dropdown(
                                         id="label_type_dropdown",
                                         options=Gene_Expression_Dataset_Plot._get_label_type_options(),
-                                        value=["L2FC"],
+                                        value="L2FC",
                                         multi=False
                                     )
                                     ],
@@ -953,7 +954,7 @@ class Gene_Expression_Dataset_Plot:
         print("Creating projection figure...")
 
         self._projection_figure = self.get_projection_figure(
-            Gene_Expression_Dataset.Transformation_Method.TSNE)
+            Transformation_Method.TSNE)
 
         self._tabs = [
             self._get_clustering_tab(),
@@ -1075,11 +1076,11 @@ class Gene_Expression_Dataset_Plot:
 
                 if transformation_method is not None:
                     transformation_method = \
-                        Gene_Expression_Dataset.Transformation_Method[
+                        Transformation_Method[
                             transformation_method]
                 if cluster_method is not None:
                     cluster_method = \
-                        Gene_Expression_Dataset.Clustering_Method[
+                        Clustering_Method[
                             cluster_method]
 
                 num_clusters = int(num_clusters)
@@ -1087,7 +1088,7 @@ class Gene_Expression_Dataset_Plot:
                 if (label_1_auto_cluster_dropdown != [] or \
                         label_2_auto_cluster_dropdown != []) and \
                         cluster_method != \
-                        Gene_Expression_Dataset.Clustering_Method.MAX_FEATURE:
+                        Clustering_Method.MAX_FEATURE:
 
                     self._gene_expression_dataset.get_matched_clusters(
                         label_1=label_1_auto_cluster_dropdown,
@@ -1340,8 +1341,9 @@ class Gene_Expression_Dataset_Plot:
 
             if label_type == "Count":
                 de = self._gene_expression_dataset.get_gene_counts(gene)
-            elif label_type == "Processed":
-                de = self._gene_expression_dataset.get_gene_counts(gene, processed=True)
+            elif label_type == "Normalized":
+                de = self._gene_expression_dataset.get_gene_counts(
+                    gene, normalized=True)
             else:
                 de = self._gene_expression_dataset.get_cell_gene_differential(gene)
 
@@ -1433,7 +1435,7 @@ class Gene_Expression_Dataset_Plot:
                 return []
 
             transformation_method = \
-                Gene_Expression_Dataset.Transformation_Method[
+                Transformation_Method[
                     transformation_method
                 ]
 
@@ -1488,7 +1490,7 @@ class Gene_Expression_Dataset_Plot:
 
             if transformation_method is not None:
                 transformation_method = \
-                    Gene_Expression_Dataset.Transformation_Method[
+                    Transformation_Method[
                         transformation_method]
 
             if verbose:
