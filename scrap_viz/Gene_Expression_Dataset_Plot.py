@@ -954,7 +954,10 @@ class Gene_Expression_Dataset_Plot:
 
     def start(self):
 
-        self._app = dash.Dash()
+        external_stylesheets = ['https://codepen.io/chriddyp/pen/brPBPO.css']
+
+        self._app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+
         self._app.title = "SCRAP-viz"
         self._app.css.config.serve_locally = True
         self._app.scripts.config.serve_locally = True
@@ -1025,8 +1028,6 @@ class Gene_Expression_Dataset_Plot:
             html.Div(id="tabs", children=self._tabs, style={"marginTop": 10}),
             html.Div(id="data", children=self._data_containers)
         ])
-
-        self._app.css.append_css({"external_url": "https://codepen.io/chriddyp/pen/brPBPO.css"})
 
         print("Setting route...")
 
