@@ -10,11 +10,9 @@ setup(
     license='MIT',
     packages=['scrap_viz'],
     python_requires='~=3.6',
-    entry_points={
-        'console_scripts': [
-            'plotting_server=plotting_server:main',
-        ],
-    },
+    scripts=[
+        'bin/scrap-viz',
+    ],
     install_requires=[
         "pandas",
         "numpy",
