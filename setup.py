@@ -8,11 +8,16 @@ setup(
     author='David Brown',
     author_email='dibidave@gmail.com',
     license='MIT',
-    packages=['scrap_viz'],
-    python_requires='~=3.6',
-    scripts=[
-        'bin/scrap-viz',
+    packages=[
+        "scrap_viz",
+        "scrap_viz.gui"
     ],
+    python_requires='~=3.6',
+    entry_points={
+        "console_scripts": [
+            "scrap-viz=scrap_viz.gui.plotting_server:launch_server",
+        ]
+    },
     install_requires=[
         "pandas",
         "numpy",
