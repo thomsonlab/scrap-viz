@@ -149,7 +149,7 @@ class Gene_Expression_Dataset:
     @staticmethod
     def write_label_cells_to_file(label_cells, file_path):
 
-        cell_labels_file = open(file_path, "w")
+        cell_labels_file = open(file_path, "w", newline="")
         writer = csv.writer(cell_labels_file)
         for label, cells in label_cells.items():
             label_array = [label]
