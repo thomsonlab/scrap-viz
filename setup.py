@@ -16,6 +16,8 @@ setup(
     entry_points={
         "console_scripts": [
             "scrap-viz=scrap_viz.gui.plotting_server:launch_server",
+            "scrap-preprocess=scrap_viz.preprocessing:preprocess",
+            "scrap-init-ws=scrap_viz.initialize_dataset:initialize_dataset"
         ]
     },
     install_requires=[
