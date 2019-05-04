@@ -3,7 +3,10 @@
 ## Installing
 
 To install (or upgrade), in your conda or python environment:
+
+```
 pip install --upgrade git+https://github.com/ThomsonLab/SCRAP-viz.git
+```
 
 ## Running
 
