@@ -13,6 +13,7 @@ from matplotlib import pyplot
 
 from . import Transformation_Method
 from . import Clustering_Method
+from . import fileio
 
 verbose = True
 
@@ -1810,7 +1811,7 @@ class Gene_Expression_Dataset_Plot:
 
             file_name += "_DE.csv"
 
-            Gene_Expression_Dataset.write_pandas_csv(self._de_stats, file_name)
+            fileio.write_pandas_csv(self._de_stats, file_name)
 
             return []
 

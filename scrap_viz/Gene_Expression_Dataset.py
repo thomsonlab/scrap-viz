@@ -24,6 +24,7 @@ from . import Normalization_Method
 from . import Transformation_Method
 from . import Clustering_Method
 from . import Data_Mode
+from . import fileio
 
 
 class Gene_Expression_Dataset:
@@ -41,11 +42,6 @@ class Gene_Expression_Dataset:
     @staticmethod
     def read_pandas_csv(file_path):
         return pandas.read_csv(file_path, sep=",", header=0, index_col=0)
-
-    @staticmethod
-    def write_pandas_csv(data_frame, file_path):
-        pandas.DataFrame(data_frame)\
-            .to_csv(file_path, sep=',', encoding='utf-8', chunksize=1000)
 
     @staticmethod
     def get_cell_labels_file_path(dataset_path):
@@ -88,7 +84,7 @@ class Gene_Expression_Dataset:
 
         data_frame = data_frame[~genes_below_threshold]
 
-        Gene_Expression_Dataset.write_pandas_csv(
+        fileio.write_pandas_csv(
             data_frame, Gene_Expression_Dataset.get_gene_counts_file_path(
                 dataset_path))
 
@@ -119,7 +115,7 @@ class Gene_Expression_Dataset:
         cell_transcript_counts = data_frame.sum()
         cell_transcript_counts.name = "TOTAL_TRANSCRIPT_COUNT"
 
-        Gene_Expression_Dataset.write_pandas_csv(
+        fileio.write_pandas_csv(
             cell_transcript_counts,
             Gene_Expression_Dataset.get_cell_transcript_counts_file_path(
                 dataset_path))
@@ -876,6 +872,9 @@ class Gene_Expression_Dataset:
             gene_counts_path
         )
 
+        print(self._gene_counts.shape)
+        print(self._gene_counts.head())
+
         normalized_path = os.path.join(self._dataset_path,
                                        "normalized_%s.csv" % name)
 
@@ -904,12 +903,12 @@ class Gene_Expression_Dataset:
 
         self.save_labels()
 
-        Gene_Expression_Dataset.write_pandas_csv(
+        fileio.write_pandas_csv(
             self._gene_counts,
             os.path.join(self._dataset_path, "gene_counts_%s.csv" % name))
 
         if self._normalized_gene_counts is not None:
-            Gene_Expression_Dataset.write_pandas_csv(
+            fileio.write_pandas_csv(
                 self._normalized_gene_counts,
                 os.path.join(self._dataset_path, "normalized_%s.csv" % name))
 
@@ -923,7 +922,7 @@ class Gene_Expression_Dataset:
 
             file_path = os.path.join(self._dataset_path, file_name)
 
-            Gene_Expression_Dataset.write_pandas_csv(
+            fileio.write_pandas_csv(
                 self._transformed[method],
                 file_path)
 

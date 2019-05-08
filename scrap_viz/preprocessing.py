@@ -22,7 +22,7 @@ def get_arguments():
                            default=5, type=int)
     argparser.add_argument("--transcript_count_filter", "-t",
                            help="Throw away cells that have transcripts >= this",
-                           default=1000, type=int)
+                           default=None, type=int)
 
     args = argparser.parse_args()
 
@@ -52,11 +52,10 @@ def preprocess():
             transcript_count_filter)
 
     print("Normalizing...")
-    gene_expression_dataset.normalize_cells(
-        Data_Mode.READS_PER_MILLION_TRANSCRIPTS)
+
     gene_expression_dataset.normalize_genes(
         Normalization_Method.SQUARE_ROOT,
-        use_normalized=True)
+        use_normalized=False)
 
     print("Transforming...")
     gene_expression_dataset.transform(
