@@ -42,6 +42,7 @@ class Gene_Expression_Dataset_Plot:
         self._n_clicks_add_label = None
         self._n_clicks_delete_label = None
         self._n_clicks_auto_cluster = None
+        self._n_clicks_slider = None
         self._column_to_sort = 1
         self._regenerate_de = False
         self._de_figure = None
@@ -649,6 +650,9 @@ class Gene_Expression_Dataset_Plot:
         min_value = math.floor(min_value/interval)*interval
         max_value = math.ceil(max_value/interval)*interval
 
+        print("min_value: %.2f" % min_value)
+        print("max_value: %.2f" % max_value)
+
         marks = {}
         mark_value = min_value
 
@@ -788,6 +792,40 @@ class Gene_Expression_Dataset_Plot:
                                         "marginTop": 10,
                                         "marginBottom": 20,
                                         "width": "75%"
+                                    }
+                                ),
+                                html.Div(
+                                    id="cell_value_range_slider_buttons",
+                                    children=[
+                                        html.Div("Min:",
+                                                 style={
+                                                     "width": "10%",
+                                                     "display": "inline-block",
+                                                     "marginLeft": 10
+                                                 }),
+                                        dcc.Input(
+                                            id="manual_cell_value_range_slider_min",
+                                            type="text", value=""
+                                        ),
+                                        html.Div("Max:",
+                                                 style={
+                                                     "width": "10%",
+                                                     "display": "inline-block",
+                                                     "marginLeft": 10
+                                                 }),
+                                        dcc.Input(
+                                            id="manual_cell_value_range_slider_max",
+                                            type="text", value=""
+                                        ),
+                                        html.Button(
+                                            "Set",
+                                            id="manual_cell_value_range_slider_button"
+                                        )
+                                    ],
+                                    style={
+                                        "marginTop": 20,
+                                        "marginBottom": 20,
+                                        "width": "100%"
                                     }
                                 )
                             ]
@@ -1018,7 +1056,7 @@ class Gene_Expression_Dataset_Plot:
                 href='/static/plots.css'
             ),
 
-            html.Div(id="blah", className="tab", children=[
+            html.Div(id="tab_buttons", className="tab", children=[
                 html.Button("Clustering", id="clustering_button",
                             className="tablinks"),
                 html.Button("Differential Expression", className="tablinks",
@@ -1313,8 +1351,14 @@ class Gene_Expression_Dataset_Plot:
 
         @self._app.callback(
             dash.dependencies.Output("cell_value_range_slider_div", "children"),
-            [dash.dependencies.Input("cell_color_values", "children")])
-        def update_cell_value_range_slider(cell_color_values):
+            [dash.dependencies.Input("cell_color_values", "children"),
+             dash.dependencies.Input("manual_cell_value_range_slider_button", "n_clicks")],
+            [dash.dependencies.State("manual_cell_value_range_slider_min", "value"),
+             dash.dependencies.State("manual_cell_value_range_slider_max", "value")])
+        def update_cell_value_range_slider(cell_color_values,
+                                           n_clicks_slider,
+                                           state_value_1,
+                                           state_value_2):
 
             if verbose:
                 print("update_cell_value_range_slider")
@@ -1330,7 +1374,17 @@ class Gene_Expression_Dataset_Plot:
             min_value = min(de_data.values())
             max_value = max(de_data.values())
 
+            print("Min value: %.2f" % min_value)
+            print("Max value: %.2f" % max_value)
+
             slider = [self.get_cell_value_range_slider(min_value, max_value)]
+
+            if n_clicks_slider:
+                if not self._n_clicks_slider or \
+                        n_clicks_slider > self._n_clicks_slider:
+                    print("Manually setting slider max")
+                    slider[0].value = [float(state_value_1), float(state_value_2)]
+                    self._n_clicks_slider = n_clicks_slider
 
             return slider
 
@@ -1360,6 +1414,26 @@ class Gene_Expression_Dataset_Plot:
                 de = self._gene_expression_dataset.get_cell_gene_differential(gene)
 
             return json.dumps(de.to_dict())
+
+        @self._app.callback(
+            dash.dependencies.Output("manual_cell_value_range_slider_min", "value"),
+            [dash.dependencies.Input("cell_value_range_slider", "value")])
+        def set_manual_filter_input_min(input_values):
+
+            if not input_values or len(input_values) < 2:
+                return ""
+
+            return str(input_values[0])
+
+        @self._app.callback(
+            dash.dependencies.Output("manual_cell_value_range_slider_max", "value"),
+            [dash.dependencies.Input("cell_value_range_slider", "value")])
+        def set_manual_filter_input_max(input_values):
+
+            if not input_values or len(input_values) < 2:
+                return ""
+
+            return str(input_values[1])
 
         @self._app.callback(
             dash.dependencies.Output("unfiltered_cells", "children"),
@@ -1406,7 +1480,7 @@ class Gene_Expression_Dataset_Plot:
                         for cell in cells_in_cluster:
                             cell_color_value = cells_gene_de[cell]
                             if cell_color_value < cell_value_range[0] \
-                                    or cell_color_value > cell_value_range[1]:
+                                    or cell_color_value >= cell_value_range[1]:
                                 cells_to_remove.add(cell)
                         unfiltered_cells = cells_in_cluster.difference(
                             cells_to_remove)

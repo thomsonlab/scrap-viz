@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='scrap-viz',
-    version='0.1.0',
+    version='0.2.0',
     description='Single-cell RNA sequencing analysis tools and visualization',
     url='https://github.com/ThomsonLab/scrap-viz',
     author='David Brown',
