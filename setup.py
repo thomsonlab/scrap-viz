@@ -21,15 +21,15 @@ setup(
         ]
     },
     install_requires=[
-        "pandas",
+        "pandas<0.24",
         "numpy",
         "sklearn",
         "scipy",
         "statsmodels",
-        "dash>=0.37.0",
-        "dash-core-components",
-        "dash-html-components",
-        "dash-renderer",
+        "dash>=0.37.0,<1.0",
+        "dash-core-components<1.0",
+        "dash-html-components<1.0",
+        "dash-renderer<1.0",
         "plotly",
         "flask"
     ]
