@@ -319,12 +319,7 @@ class Gene_Expression_Dataset:
 
         elif method == Transformation_Method.TSNE:
 
-            if Transformation_Method.VAE in self._transformed:
-                transformed = TSNE(
-                    verbose=True, perplexity=30, n_components=num_dimensions).\
-                    fit_transform(
-                        self._transformed[Transformation_Method.VAE])
-            elif Transformation_Method.PCA in self._transformed:
+            if Transformation_Method.PCA in self._transformed:
                 transformed = TSNE(
                     verbose=True, perplexity=30, n_components=num_dimensions).\
                     fit_transform(
