@@ -26,8 +26,6 @@ setup(
         "sklearn",
         "scipy",
         "statsmodels",
-        "scvi",
-        "torch",
         "dash>=0.37.0",
         "dash-core-components",
         "dash-html-components",

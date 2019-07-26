@@ -6,4 +6,3 @@ class Transformation_Method(Enum):
     TSNE = 1
     NMF = 2
     SVD = 3
-    VAE = 4

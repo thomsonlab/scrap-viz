@@ -14,12 +14,6 @@ import numpy
 import scipy
 from sklearn import mixture
 
-from scvi.dataset import GeneExpressionDataset
-from scvi.models import VAE
-from scvi.inference import UnsupervisedTrainer, Trainer
-from scvi.inference.posterior import Posterior
-import torch
-
 from . import Normalization_Method
 from . import Transformation_Method
 from . import Clustering_Method
@@ -258,17 +252,21 @@ class Gene_Expression_Dataset:
 
         elif data_mode == Data_Mode.GENE_PROBABILITIES:
 
-            for cell, gene_counts in gene_counts.iteritems():
-                zero_counts = sum(gene_counts == 0)
-                single_counts = sum(gene_counts == 1)
-                total_count = self._cell_transcript_counts[
-                    "TOTAL_TRANSCRIPT_COUNT"][cell]
-                zero_probability = single_counts/total_count
+            gene_counts = gene_counts.div(
+                self._cell_transcript_counts.loc[
+                    gene_counts.columns]["TOTAL_TRANSCRIPT_COUNT"])
 
-                gene_counts = gene_counts/total_count*(1 - zero_probability)
-                gene_counts[gene_counts == 0] = zero_probability/zero_counts
-
-                gene_counts[cell] = gene_counts
+            # for cell, gene_counts in gene_counts.iteritems():
+            #     zero_counts = sum(gene_counts == 0)
+            #     single_counts = sum(gene_counts == 1)
+            #     total_count = self._cell_transcript_counts[
+            #         "TOTAL_TRANSCRIPT_COUNT"][cell]
+            #     zero_probability = single_counts/total_count
+            #
+            #     gene_counts = gene_counts/total_count#*(1 - zero_probability)
+            #     #gene_counts[gene_counts == 0] = zero_probability/zero_counts
+            #
+            #     gene_counts[cell] = gene_counts
 
         self._normalized_gene_counts = gene_counts
         self._normalized_gene_means = \
@@ -365,51 +363,6 @@ class Gene_Expression_Dataset:
 
             self._transformed[method].columns = \
                 ["NMF_%i" % i for i in range(1, num_dimensions + 1)]
-
-        elif method == Transformation_Method.VAE:
-
-            X, local_means, local_vars, batch_indices, labels = \
-                GeneExpressionDataset.get_attributes_from_matrix(
-                    gene_counts.T.values)
-
-            if batch_labels:
-
-                batch_indices = numpy.zeros((gene_counts.shape[1]))
-
-                for label_index, label in enumerate(self._labels):
-
-                    for cell in self._cell_labels[label]:
-                        cell_index = self._gene_counts.columns.get_loc(cell)
-                        batch_indices[cell_index] = label_index
-
-            cells_dataset = GeneExpressionDataset(X, local_means, local_vars,
-                                                  batch_indices, labels,
-                                                  gene_names=numpy.array(
-                                                  gene_counts.index.values,
-                                                  dtype=str))
-
-            vae = VAE(cells_dataset.nb_genes,
-                      n_batch=cells_dataset.n_batches,
-                      n_latent=10,
-                      n_layers=3,
-                      n_hidden=128,
-                      )
-
-            trainer = UnsupervisedTrainer(vae,
-                                          cells_dataset,
-                                          frequency=1,
-                                          use_cuda=True
-                                          )
-
-            trainer.train(n_epochs=50)
-
-            torch.cuda.empty_cache()
-
-            Z_hat = vae.sample_from_posterior_z(
-                torch.FloatTensor(cells_dataset.X))
-            Z_hat = Z_hat.detach().numpy()
-
-            self._transformed[method] = pandas.DataFrame(Z_hat)
 
         self._transformed[method].index = gene_counts.columns
 
@@ -871,9 +824,6 @@ class Gene_Expression_Dataset:
         self._gene_counts = Gene_Expression_Dataset.read_pandas_csv(
             gene_counts_path
         )
-
-        print(self._gene_counts.shape)
-        print(self._gene_counts.head())
 
         normalized_path = os.path.join(self._dataset_path,
                                        "normalized_%s.csv" % name)
