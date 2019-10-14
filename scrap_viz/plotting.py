@@ -47,6 +47,7 @@ def plot_scatter(x, y):
 
     plotly.offline.plot(figure)
 
+
 def plot_differential_expression(sample_means):
 
     x_values = []

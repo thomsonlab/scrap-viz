@@ -52,10 +52,13 @@ def preprocess():
             transcript_count_filter)
 
     print("Normalizing...")
+    gene_expression_dataset.normalize_cells(
+        data_mode=Data_Mode.READS_PER_MILLION_TRANSCRIPTS)
 
     gene_expression_dataset.normalize_genes(
-        Normalization_Method.SQUARE_ROOT,
-        use_normalized=False)
+        Normalization_Method.LOG_PLUS_1,
+        use_normalized=True,
+        parameters=[5000])
 
     print("Transforming...")
     gene_expression_dataset.transform(
