@@ -15,14 +15,16 @@ For each new dataset to analyze, you need to initialize a SCRAP-viz workspace fo
 
 To initialize a dataset, from your command prompt, terminal, or conda prompt:
 ```
-scrap-init-ws -w [path to the workspace you want to create] -f [path to your H5 file]
+scrap-init-ws -w [path to the workspace you want to create] -s [path to your SDT file]
 ```
+
+Workspaces can be initialized from H5, mtx, CSV, or SDT files using the related flag (-f, -m, -c, -s)
 
 For example:
 ```
-scrap-init-ws -w test_workspace -f /home/dibidave/Downloads/filtered_feature_bc_matrix.h5
+scrap-init-ws -w test_workspace -f ../data/filtered_feature_bc_matrix.h5
 ```
-Will create a folder "test_workspace" in the current folder I'm in on my command prompt, and will initialize it to be a SCRAP-viz workspace based on the gene count data in the given H5 file.
+Will create a folder "test_workspace" in the current folder, and will initialize it to be a SCRAP-viz workspace based on the gene count data in the given H5 file.
 
 ### Preprocessing a dataset
 ```
