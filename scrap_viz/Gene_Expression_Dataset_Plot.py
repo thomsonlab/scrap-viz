@@ -1396,11 +1396,12 @@ class Gene_Expression_Dataset_Plot:
 
             if not gene:
                 cell_read_counts = \
-                    self._gene_expression_dataset.get_cell_transcript_counts()
-                cell_read_counts = cell_read_counts["TOTAL_TRANSCRIPT_COUNT"]
+                    self._gene_expression_dataset.\
+                        get_cell_total_transcript_counts()
                 cell_read_count_ints = \
-                    {gene: int(count)
-                        for gene, count in cell_read_counts.items()}
+                    {cell_barcode: int(cell_read_counts[cell_index])
+                        for cell_index, cell_barcode in enumerate(self._gene_expression_dataset._cell_transcript_counts.row_names)
+                     }
                 return json.dumps(cell_read_count_ints)
 
             print(label_type)
@@ -1411,7 +1412,8 @@ class Gene_Expression_Dataset_Plot:
                 de = self._gene_expression_dataset.get_gene_counts(
                     gene, normalized=True)
             else:
-                de = self._gene_expression_dataset.get_cell_gene_differential(gene)
+                de = self._gene_expression_dataset.get_cell_gene_differential(
+                    gene)
 
             return json.dumps(de.to_dict())
 

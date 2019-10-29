@@ -44,17 +44,18 @@ def preprocess():
     gene_expression_dataset = Gene_Expression_Dataset(workspace_path)
 
     print("Filtering...")
-    gene_expression_dataset.filter_low_gene_counts(
+    gene_expression_dataset.filter_low_transcript_counts(
         gene_count_filter)
 
     if transcript_count_filter is not None:
         gene_expression_dataset.filter_low_transcript_cells(
             transcript_count_filter)
 
-    print("Normalizing...")
+    print("Normalizing cells...")
     gene_expression_dataset.normalize_cells(
-        data_mode=Data_Mode.READS_PER_MILLION_TRANSCRIPTS)
+        data_mode=Data_Mode.GENE_PROBABILITIES)
 
+    print("Normalizing genes...")
     gene_expression_dataset.normalize_genes(
         Normalization_Method.LOG_PLUS_1,
         use_normalized=True,

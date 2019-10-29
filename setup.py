@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='scrap-viz',
-    version='0.2.0',
+    version='1.0.0alpha',
     description='Single-cell RNA sequencing analysis tools and visualization',
     url='https://github.com/ThomsonLab/scrap-viz',
     author='David Brown',
@@ -21,7 +21,7 @@ setup(
         ]
     },
     install_requires=[
-        "pandas<0.24",
+        "pandas",
         "numpy",
         "sklearn",
         "scipy",
@@ -31,7 +31,9 @@ setup(
         "dash-html-components<1.0",
         "dash-renderer<1.0",
         "plotly",
-        "flask"
+        "flask",
+        "sparsedat>=1.0.0alpha4",
+        "sklearn"
     ]
 
 )

@@ -4,6 +4,7 @@ from scipy.sparse import csc_matrix
 from scipy.io import mmread
 import pandas
 import numpy
+from sparsedat import Sparse_Data_Table
 
 
 def convert_mtx_to_csv(mtx_directory_path, csv_file_path):
@@ -51,6 +52,43 @@ def convert_mtx_to_csv(mtx_directory_path, csv_file_path):
     data_frame.columns = barcodes
 
     write_pandas_csv(data_frame, csv_file_path)
+
+
+def convert_h5_to_sdt(
+        h5_file_path,
+        SDT_file_path
+):
+    h5_file = h5py.File(h5_file_path)
+
+    sdt = Sparse_Data_Table()
+
+    data = h5_file["matrix"]["data"][()]
+    indices = h5_file["matrix"]["indices"][()]
+    indptr = h5_file["matrix"]["indptr"][()]
+
+    # Because H5 files are reversed for some reason...
+    for column_index in range(len(indptr) - 1):
+        data[indptr[column_index]:indptr[column_index + 1]] = \
+            data[indptr[column_index]:indptr[column_index + 1]][::-1]
+        indices[indptr[column_index]:indptr[column_index + 1]] = \
+            indices[indptr[column_index]:indptr[column_index + 1]][::-1]
+
+    sdt.from_sparse_column_entries(
+        (
+            data,
+            indices,
+            indptr
+        ),
+        h5_file["matrix"]["shape"][0],
+        h5_file["matrix"]["shape"][1]
+    )
+
+    sdt.column_names = [x.decode("utf-8") for x in
+                        h5_file["matrix"]["barcodes"][()]]
+    sdt.row_names = [x.decode("utf-8") for x in
+                     h5_file["matrix"]["features"]["name"][()]]
+
+    sdt.save(SDT_file_path)
 
 
 def convert_h5_to_csv(h5_file_path, csv_file_path):
@@ -102,3 +140,7 @@ def convert_h5_to_csv(h5_file_path, csv_file_path):
 def write_pandas_csv(data_frame, file_path):
     pandas.DataFrame(data_frame)\
         .to_csv(file_path, sep=',', encoding='utf-8', chunksize=1000)
+
+
+def read_pandas_csv(file_path):
+    return pandas.read_csv(file_path, sep=",", header=0, index_col=0)

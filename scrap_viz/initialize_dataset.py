@@ -1,6 +1,7 @@
 import os
 import argparse
 import shutil
+from sparsedat import wrappers as sparsedat_wrappers
 
 from scrap_viz import fileio
 from scrap_viz import Gene_Expression_Dataset
@@ -18,6 +19,8 @@ def get_arguments():
                            help="Path to a CSV file", default=None)
     argparser.add_argument("--mtx_directory_path", "-m",
                            help="Path to an mtx directory", default=None)
+    argparser.add_argument("--sdt_file_path", "-s",
+                           help="Path to an SDT file", default=None)
 
     args = argparser.parse_args()
 
@@ -41,23 +44,31 @@ def initialize_dataset():
 
     if args.h5_file_path is None and \
             args.csv_file_path is None and \
-            args.mtx_directory_path is None:
-        raise ValueError("Must specify path to file with -f, -c, or -m")
+            args.mtx_directory_path is None and \
+            args.sdt_file_path is None:
+        raise ValueError("Must specify path to file with -f, -c, -m, or -s")
 
-    raw_gene_counts_csv_path = os.path.join(
-        workspace_path, "raw_gene_counts.csv")
+    raw_transcript_counts_file_path = os.path.join(
+        workspace_path, "source_cell_transcript_counts.sdt")
 
-    if args.h5_file_path is not None:
-        fileio.convert_h5_to_csv(args.h5_file_path, raw_gene_counts_csv_path)
+    if args.sdt_file_path is not None:
+        raw_transcript_counts_file_path = args.sdt_file_path
+    elif args.h5_file_path is not None:
+        fileio.convert_h5_to_sdt(args.h5_file_path,
+                                 raw_transcript_counts_file_path)
     elif args.csv_file_path is not None:
-        shutil.copyfile(args.csv_file_path, raw_gene_counts_csv_path)
+        raise NotImplementedError("Haven't implemented csv to sdt")
     else:
-        fileio.convert_mtx_to_csv(args.mtx_directory_path,
-                                  raw_gene_counts_csv_path)
+        sdt = sparsedat_wrappers.load_mtx(
+            os.path.join(args.mtx_directory_path, "features.tsv"),
+            os.path.join(args.mtx_directory_path, "barcodes.tsv"),
+            os.path.join(args.mtx_directory_path, "matrix.mtx")
+        )
+        sdt.save(raw_transcript_counts_file_path)
 
-    seed_matrices_file_paths = [raw_gene_counts_csv_path]
+    seed_matrices_file_paths = [raw_transcript_counts_file_path]
 
-    Gene_Expression_Dataset(
+    Gene_Expression_Dataset.initialize_dataset(
         workspace_path,
-        seed_matrix_file_path=seed_matrices_file_paths
+        seed_matrices_file_path=seed_matrices_file_paths
     )
