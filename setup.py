@@ -33,7 +33,8 @@ setup(
         "plotly",
         "flask",
         "sparsedat>=1.0.0alpha4",
-        "sklearn"
+        "sklearn",
+        "scrap"
     ]
 
 )

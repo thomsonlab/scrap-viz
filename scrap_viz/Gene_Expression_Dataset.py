@@ -391,7 +391,7 @@ class Gene_Expression_Dataset:
         else:
             cells = set()
             for label in labels:
-                label_cells = self._cell_transcript_counts.row_names
+                label_cells = set(self._cell_transcript_counts.row_names)
                 label_cells = label_cells.intersection(
                     self._label_cells[label])
 

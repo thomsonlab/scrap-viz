@@ -5,7 +5,7 @@
 To install (or upgrade), in your conda or python environment:
 
 ```
-pip install --upgrade git+https://github.com/ThomsonLab/SCRAP-viz.git
+pip install --upgrade git+https://github.com/thomsonlab/scrap-viz.git
 ```
 
 ## Running

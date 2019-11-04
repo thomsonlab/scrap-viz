@@ -3,7 +3,7 @@ import argparse
 import shutil
 from sparsedat import wrappers as sparsedat_wrappers
 
-from scrap_viz import fileio
+from scrap import utils as scrap_utils
 from scrap_viz import Gene_Expression_Dataset
 
 
@@ -49,13 +49,14 @@ def initialize_dataset():
         raise ValueError("Must specify path to file with -f, -c, -m, or -s")
 
     raw_transcript_counts_file_path = os.path.join(
-        workspace_path, "source_cell_transcript_counts.sdt")
+        workspace_path, "source_barcode_transcript_counts.sdt")
 
     if args.sdt_file_path is not None:
         raw_transcript_counts_file_path = args.sdt_file_path
     elif args.h5_file_path is not None:
-        fileio.convert_h5_to_sdt(args.h5_file_path,
-                                 raw_transcript_counts_file_path)
+        scrap_utils.convert_h5_to_sdt(
+            args.h5_file_path,
+            raw_transcript_counts_file_path)
     elif args.csv_file_path is not None:
         raise NotImplementedError("Haven't implemented csv to sdt")
     else:
