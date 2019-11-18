@@ -2,7 +2,6 @@ import dash
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
-from .Gene_Expression_Dataset import Gene_Expression_Dataset
 import plotly.figure_factory as ff
 import pandas
 import json
@@ -11,9 +10,9 @@ import os
 from flask import send_from_directory
 from matplotlib import pyplot
 
-from . import Transformation_Method
-from . import Clustering_Method
-from . import fileio
+from scrap.dataset import Transformation_Method
+from scrap.dataset import Clustering_Method
+from scrap.utils import fileio
 
 verbose = True
 

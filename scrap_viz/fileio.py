@@ -136,11 +136,3 @@ def convert_h5_to_csv(h5_file_path, csv_file_path):
         df = df.append(pandas.DataFrame(0, index=gene_names[num_genes_present:], columns=barcodes))
     write_pandas_csv(df, csv_file_path)
 
-
-def write_pandas_csv(data_frame, file_path):
-    pandas.DataFrame(data_frame)\
-        .to_csv(file_path, sep=',', encoding='utf-8', chunksize=1000)
-
-
-def read_pandas_csv(file_path):
-    return pandas.read_csv(file_path, sep=",", header=0, index_col=0)

@@ -1,10 +1,10 @@
 import os
 import argparse
-import shutil
+
 from sparsedat import wrappers as sparsedat_wrappers
 
 from scrap import utils as scrap_utils
-from scrap_viz import Gene_Expression_Dataset
+from scrap.dataset import Gene_Expression_Dataset
 
 
 def get_arguments():

@@ -3,7 +3,7 @@
 import os
 import argparse
 
-from scrap_viz import Gene_Expression_Dataset
+from scrap.dataset import Gene_Expression_Dataset
 from scrap_viz import Gene_Expression_Dataset_Plot
 from scrap_viz import Gene_Metadata
 

@@ -15,17 +15,15 @@ setup(
     python_requires='~=3.6',
     entry_points={
         "console_scripts": [
-            "scrap-viz=scrap_viz.gui.plotting_server:launch_server",
-            "scrap-preprocess=scrap_viz.preprocessing:preprocess",
-            "scrap-init-ws=scrap_viz.initialize_dataset:initialize_dataset"
+            "scrap-viz=scrap_viz.gui.plotting_server:launch_server"
         ]
     },
     install_requires=[
+        "urllib3",
+        "matplotlib",
         "pandas",
         "numpy",
-        "sklearn",
         "scipy",
-        "statsmodels",
         "dash>=0.37.0,<1.0",
         "dash-core-components<1.0",
         "dash-html-components<1.0",
@@ -33,8 +31,8 @@ setup(
         "plotly",
         "flask",
         "sparsedat>=1.0.0alpha4",
-        "sklearn",
-        "scrap"
+        "scrap>=0.3",
+        "h5py"
     ]
 
 )
