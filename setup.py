@@ -34,6 +34,8 @@ setup(
         "flask",
         "sparsedat>=1.0.0alpha4",
         "sklearn"
+        "scrapi>=0.3",
+        "h5py"
     ]
 
 )

@@ -11,9 +11,9 @@ import os
 from flask import send_from_directory
 from matplotlib import pyplot
 
-from . import Transformation_Method
-from . import Clustering_Method
-from . import fileio
+from scrapi.dataset import Transformation_Method
+from scrapi.dataset import Clustering_Method
+from scrapi.utils import fileio
 
 verbose = True
 
