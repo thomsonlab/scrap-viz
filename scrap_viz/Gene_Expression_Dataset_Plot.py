@@ -10,9 +10,9 @@ import os
 from flask import send_from_directory
 from matplotlib import pyplot
 
-from scrap.dataset import Transformation_Method
-from scrap.dataset import Clustering_Method
-from scrap.utils import fileio
+from scrapi.dataset import Transformation_Method
+from scrapi.dataset import Clustering_Method
+from scrapi.utils import fileio
 
 verbose = True
 

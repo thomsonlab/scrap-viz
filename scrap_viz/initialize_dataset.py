@@ -3,8 +3,8 @@ import argparse
 
 from sparsedat import wrappers as sparsedat_wrappers
 
-from scrap import utils as scrap_utils
-from scrap.dataset import Gene_Expression_Dataset
+from scrapi import utils as scrap_utils
+from scrapi.dataset import Gene_Expression_Dataset
 
 
 def get_arguments():
